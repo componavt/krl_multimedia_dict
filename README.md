@@ -1,3 +1,3 @@
-# VepKar Audio
+#  Karelian multimedia dictionary
 
-Audiolemmas dictionary of the Karelian language of the Livvik dialect.
+Karelian dictionary (Livvik dialect) with audio.
