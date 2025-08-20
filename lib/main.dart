@@ -17,19 +17,19 @@ class DetailPage extends StatelessWidget {
   final String audioPath;
 
   DetailPage(
-      {Key? key,
+      {super.key,
         required this.word,
         required this.part,
         required this.description,
-        required this.audioPath})
-      : super(key: key) {
+        required this.audioPath}) {
     audioPlayer = AudioPlayer();
   }
 
   void playAudio(audioPath) async {
     final player = AudioCache(prefix: "");
     var url = await player.load(audioPath);
-    audioPlayer.play(url.toString(), isLocal: true);
+    // audioPlayer.play(url.toString(), isLocal: true);
+    audioPlayer.play(UrlSource(url.toString()));
   }
 
 
@@ -98,7 +98,7 @@ class DetailPage extends StatelessWidget {
 }
 
 class MyApp extends StatefulWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   // ignore: library_private_types_in_public_api
@@ -371,7 +371,7 @@ class AboutPage extends StatelessWidget {
               child: Padding(
                 padding: EdgeInsets.all(16.0),
                 child: Text(
-                  'Дмитрий Брухан\ngithub.com/kazuro0/vepkar_audio',
+                  'Крижановский Андрей\nДмитрий Брухан\ngithub.com/componavt/krl_multimedia_dict',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16, fontFamily: 'Open Sans', color: Colors.grey),
                 ),
