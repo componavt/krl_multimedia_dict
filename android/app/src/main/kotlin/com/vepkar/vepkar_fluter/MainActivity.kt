@@ -1,4 +1,4 @@
-package com.example.krl_multimedia_dict
+package com.vepkar.vepkar_flutter
 
 import io.flutter.embedding.android.FlutterActivity
 
