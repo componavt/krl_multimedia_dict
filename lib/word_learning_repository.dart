@@ -71,7 +71,7 @@ class WordLearningRepository {
     return WordLearningRecord(
       lemmaId: lemmaId,
       correctCount: 1,
-      wrongCount: 0,
+      wrongCount: firstAttemptCorrect ? 0 : 1,
       recentFirstAttemptResults: [firstAttemptCorrect],
       lastPractisedAt: DateTime.now(),
     ).toJson();
@@ -90,7 +90,7 @@ class WordLearningRepository {
     return WordLearningRecord(
       lemmaId: record.lemmaId,
       correctCount: record.correctCount + 1,
-      wrongCount: record.wrongCount,
+      wrongCount: record.wrongCount + (firstAttemptCorrect ? 0 : 1),
       recentFirstAttemptResults: updatedResults,
       lastPractisedAt: DateTime.now(),
     ).toJson();
@@ -152,22 +152,27 @@ class WordLearningRepository {
         newFirstAttemptCorrect++;
       }
 
-      final updatedSession = session.copyWith(
-        completedRounds: newCompletedRounds,
-        firstAttemptCorrectRounds: newFirstAttemptCorrect,
-        roundsWithMistakes: newRoundsWithMistakes,
-      );
+      final newlyLearned = Set<String>.from(session.newlyLearnedWordIds);
+      final needingReview = Set<String>.from(session.needingReviewWordIds);
 
       if (previousMastery != WordMastery.learned &&
           previousMastery != WordMastery.confident &&
           (currentMastery == WordMastery.learned ||
               currentMastery == WordMastery.confident)) {
-        updatedSession.newlyLearnedWordIds.add(lemmaId);
+        newlyLearned.add(lemmaId);
       }
 
       if (!firstAttemptCorrect) {
-        updatedSession.needingReviewWordIds.add(lemmaId);
+        needingReview.add(lemmaId);
       }
+
+      final updatedSession = session.copyWith(
+        completedRounds: newCompletedRounds,
+        firstAttemptCorrectRounds: newFirstAttemptCorrect,
+        roundsWithMistakes: newRoundsWithMistakes,
+        newlyLearnedWordIds: newlyLearned,
+        needingReviewWordIds: needingReview,
+      );
 
       await prefs.setString(
         _activeSessionKey,

@@ -440,17 +440,35 @@ abstract class AppLocalizations {
   /// **'No learning data yet. Start playing!'**
   String get noLearningDataYet;
 
-  /// No description provided for @roundOf.
+  /// No description provided for @restoredPairs.
   ///
   /// In en, this message translates to:
-  /// **'Round {current} of {total}'**
-  String roundOf(Object current, Object total);
+  /// **'Restored pairs'**
+  String get restoredPairs;
 
-  /// No description provided for @streak.
+  /// No description provided for @textSize.
   ///
   /// In en, this message translates to:
-  /// **'Streak'**
-  String get streak;
+  /// **'Text size'**
+  String get textSize;
+
+  /// No description provided for @textSizeSmall.
+  ///
+  /// In en, this message translates to:
+  /// **'Small'**
+  String get textSizeSmall;
+
+  /// No description provided for @textSizeMedium.
+  ///
+  /// In en, this message translates to:
+  /// **'Medium'**
+  String get textSizeMedium;
+
+  /// No description provided for @textSizeLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'Large'**
+  String get textSizeLarge;
 
   /// No description provided for @hint.
   ///
@@ -479,7 +497,7 @@ abstract class AppLocalizations {
   /// No description provided for @wrongChoiceMeaning.
   ///
   /// In en, this message translates to:
-  /// **'{lemma} — {meaning}'**
+  /// **'{lemma} means {meaning}'**
   String wrongChoiceMeaning(Object lemma, Object meaning);
 
   /// No description provided for @sessionCompleted.
@@ -494,17 +512,29 @@ abstract class AppLocalizations {
   /// **'Restore the archive card'**
   String get restoreArchiveCard;
 
-  /// No description provided for @bestStreak.
-  ///
-  /// In en, this message translates to:
-  /// **'Best streak'**
-  String get bestStreak;
-
   /// No description provided for @cardsNeedReview.
   ///
   /// In en, this message translates to:
   /// **'Cards needing review'**
   String get cardsNeedReview;
+
+  /// No description provided for @scoreOutOf.
+  ///
+  /// In en, this message translates to:
+  /// **'Score: {score} / {total}'**
+  String scoreOutOf(Object score, Object total);
+
+  /// No description provided for @currentStreak.
+  ///
+  /// In en, this message translates to:
+  /// **'Streak: {count}'**
+  String currentStreak(Object count);
+
+  /// No description provided for @bestStreakLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Best streak: {count}'**
+  String bestStreakLabel(Object count);
 }
 
 class _AppLocalizationsDelegate

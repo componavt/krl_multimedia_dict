@@ -140,7 +140,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get karelianColumn => 'Карельское';
 
   @override
-  String get translationColumn => 'Перевод';
+  String get translationColumn => 'Русский';
 
   @override
   String get learningStatistics => 'Статистика';
@@ -182,12 +182,19 @@ class AppLocalizationsRu extends AppLocalizations {
   String get noLearningDataYet => 'Нет данных по обучению. Начните играть!';
 
   @override
-  String roundOf(Object current, Object total) {
-    return 'Раунд $current из $total';
-  }
+  String get restoredPairs => 'Восстановленные пары';
 
   @override
-  String get streak => 'Серия';
+  String get textSize => 'Размер шрифта';
+
+  @override
+  String get textSizeSmall => 'Мелко';
+
+  @override
+  String get textSizeMedium => 'Средне';
+
+  @override
+  String get textSizeLarge => 'Крупно';
 
   @override
   String get hint => 'Подсказка';
@@ -219,8 +226,20 @@ class AppLocalizationsRu extends AppLocalizations {
   String get restoreArchiveCard => 'Восстановите архивную карточку';
 
   @override
-  String get bestStreak => 'Лучшая серия';
+  String get cardsNeedReview => 'Карточки нуждаются в повторении';
 
   @override
-  String get cardsNeedReview => 'Карточки нуждаются в повторении';
+  String scoreOutOf(Object score, Object total) {
+    return 'Очки: $score / $total';
+  }
+
+  @override
+  String currentStreak(Object count) {
+    return 'Серия: $count';
+  }
+
+  @override
+  String bestStreakLabel(Object count) {
+    return 'Лучшая серия: $count';
+  }
 }

@@ -31,7 +31,7 @@ class _LearningStatisticsPageState extends State<LearningStatisticsPage> {
         centerTitle: true,
         backgroundColor: AppPalette.archiveSurface,
         title: Text(
-          l10n.learningStatistics,
+          l10n!.learningStatistics,
           style: const TextStyle(
             fontFamily: 'Centro',
             fontWeight: FontWeight.w600,
@@ -57,7 +57,7 @@ class _LearningStatisticsPageState extends State<LearningStatisticsPage> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      l10n.statisticsLoadError,
+                      l10n!.statisticsLoadError,
                       style: const TextStyle(fontFamily: 'Open Sans'),
                     ),
                   ],
@@ -79,7 +79,7 @@ class _LearningStatisticsPageState extends State<LearningStatisticsPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    l10n.myWordArchive,
+                    l10n!.myWordArchive,
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
@@ -98,19 +98,19 @@ class _LearningStatisticsPageState extends State<LearningStatisticsPage> {
                     child: Column(
                       children: [
                         _buildStatRow(
-                          l10n.wordsEncountered,
+                          l10n!.wordsEncountered,
                           '${stats.totalWordsWithAtLeastOneCorrect}',
                         ),
                         _buildStatRow(
-                          l10n.wordsLearned,
+                          l10n!.wordsLearned,
                           '${stats.wordsLearned}',
                         ),
                         _buildStatRow(
-                          l10n.confidentWords,
+                          l10n!.confidentWords,
                           '${stats.wordsConfident}',
                         ),
                         _buildStatRow(
-                          l10n.needsReview,
+                          l10n!.needsReview,
                           '${stats.wordsNeedingReview}',
                         ),
                       ],
@@ -119,7 +119,7 @@ class _LearningStatisticsPageState extends State<LearningStatisticsPage> {
                   const SizedBox(height: 24),
                   if (stats.activeSession != null) ...[
                     Text(
-                      l10n.currentSession,
+                      l10n!.currentSession,
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
@@ -138,15 +138,15 @@ class _LearningStatisticsPageState extends State<LearningStatisticsPage> {
                       child: Column(
                         children: [
                           _buildStatRow(
-                            l10n.restoredCards,
+                            l10n!.restoredCards,
                             '${stats.activeSession!.completedRounds} / 10',
                           ),
                           _buildStatRow(
-                            l10n.firstAttemptCorrect,
+                            l10n!.firstAttemptCorrect,
                             '${stats.activeSession!.firstAttemptCorrectRounds}',
                           ),
                           _buildStatRow(
-                            l10n.needsReview,
+                            l10n!.needsReview,
                             '${stats.activeSession!.roundsWithMistakes}',
                           ),
                         ],
@@ -156,7 +156,7 @@ class _LearningStatisticsPageState extends State<LearningStatisticsPage> {
                   const SizedBox(height: 24),
                   if (stats.previousSession != null) ...[
                     Text(
-                      l10n.previousSession,
+                      l10n!.previousSession,
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
@@ -175,15 +175,15 @@ class _LearningStatisticsPageState extends State<LearningStatisticsPage> {
                       child: Column(
                         children: [
                           _buildStatRow(
-                            l10n.restoredCards,
+                            l10n!.restoredCards,
                             '${stats.previousSession!.completedRounds} / 10',
                           ),
                           _buildStatRow(
-                            l10n.newlyLearned,
+                            l10n!.newlyLearned,
                             '${stats.previousSession!.newlyLearnedWordIds.length}',
                           ),
                           _buildStatRow(
-                            l10n.needsReview,
+                            l10n!.needsReview,
                             '${stats.previousSession!.needingReviewWordIds.length}',
                           ),
                         ],
@@ -202,7 +202,7 @@ class _LearningStatisticsPageState extends State<LearningStatisticsPage> {
                         border: Border.all(color: AppPalette.amber, width: 1.2),
                       ),
                       child: Text(
-                        l10n.noLearningDataYet,
+                        l10n!.noLearningDataYet,
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           fontFamily: 'Open Sans',

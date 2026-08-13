@@ -182,12 +182,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noLearningDataYet => 'No learning data yet. Start playing!';
 
   @override
-  String roundOf(Object current, Object total) {
-    return 'Round $current of $total';
-  }
+  String get restoredPairs => 'Restored pairs';
 
   @override
-  String get streak => 'Streak';
+  String get textSize => 'Text size';
+
+  @override
+  String get textSizeSmall => 'Small';
+
+  @override
+  String get textSizeMedium => 'Medium';
+
+  @override
+  String get textSizeLarge => 'Large';
 
   @override
   String get hint => 'Hint';
@@ -209,7 +216,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String wrongChoiceMeaning(Object lemma, Object meaning) {
-    return '$lemma — $meaning';
+    return '$lemma means $meaning';
   }
 
   @override
@@ -219,8 +226,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get restoreArchiveCard => 'Restore the archive card';
 
   @override
-  String get bestStreak => 'Best streak';
+  String get cardsNeedReview => 'Cards needing review';
 
   @override
-  String get cardsNeedReview => 'Cards needing review';
+  String scoreOutOf(Object score, Object total) {
+    return 'Score: $score / $total';
+  }
+
+  @override
+  String currentStreak(Object count) {
+    return 'Streak: $count';
+  }
+
+  @override
+  String bestStreakLabel(Object count) {
+    return 'Best streak: $count';
+  }
 }

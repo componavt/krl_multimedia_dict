@@ -95,22 +95,30 @@ class _GamePageState extends State<GamePage>
   @override
   void initState() {
     super.initState();
-    _loadEntries();
-    _loadBestScores();
-    _preloadAudioAssets();
+    _initializeGameData();
   }
 
-  Future<void> _loadEntries() async {
+  Future<void> _initializeGameData() async {
     try {
       final entries = await _repository.loadEntries();
 
       if (!mounted) return;
+
       setState(() {
         _entries = entries.cast<Map<String, dynamic>>();
+      });
+
+      await _preloadAudioAssets();
+      await _loadBestScores();
+
+      if (!mounted) return;
+
+      setState(() {
         _isLoading = false;
       });
     } catch (error) {
       if (!mounted) return;
+
       setState(() {
         _loadError = error;
         _isLoading = false;
@@ -172,7 +180,7 @@ class _GamePageState extends State<GamePage>
       final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('${l10n.audioPlaybackError}: $e'),
+          content: Text('${l10n!.audioPlaybackError}: $e'),
           backgroundColor: AppPalette.brickRed,
         ),
       );
@@ -201,7 +209,7 @@ class _GamePageState extends State<GamePage>
       final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('${l10n.audioPlaybackError}: $e'),
+          content: Text('${l10n!.audioPlaybackError}: $e'),
           backgroundColor: AppPalette.brickRed,
         ),
       );
@@ -250,10 +258,11 @@ class _GamePageState extends State<GamePage>
 
     if (audioEnabledEntries.length < 4) {
       if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(l10n.notEnoughEntries),
-          backgroundColor: Colors.orange,
+          content: Text(l10n!.notEnoughEntries),
+          backgroundColor: AppPalette.brickRed,
         ),
       );
       return;
@@ -311,7 +320,7 @@ class _GamePageState extends State<GamePage>
       builder: (dialogContext) {
         return AlertDialog(
           title: Text(
-            l10n.listenAndGuess,
+            l10n!.listenAndGuess,
             style: const TextStyle(
               fontFamily: 'Centro',
               fontWeight: FontWeight.w600,
@@ -323,17 +332,17 @@ class _GamePageState extends State<GamePage>
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  '${l10n.score}: $_listenScore / $_totalListenRounds',
+                  l10n!.scoreOutOf(_listenScore, _totalListenRounds),
                   style: const TextStyle(fontFamily: 'Open Sans'),
                 ),
                 if (_listenStreak > 1)
                   Text(
-                    '${l10n.listenAndGuess} $_listenStreak',
+                    l10n!.currentStreak(_listenStreak),
                     style: const TextStyle(fontFamily: 'Open Sans'),
                   ),
                 if (_listenBestStreak > 1)
                   Text(
-                    '${l10n.listenAndGuess} $_listenBestStreak',
+                    l10n!.bestStreakLabel(_listenBestStreak),
                     style: const TextStyle(fontFamily: 'Open Sans'),
                   ),
               ],
@@ -345,7 +354,7 @@ class _GamePageState extends State<GamePage>
                 Navigator.of(dialogContext).pop();
                 _resetListenSession();
               },
-              child: Text(l10n.playAgain),
+              child: Text(l10n!.playAgain),
             ),
             TextButton(
               onPressed: () {
@@ -354,7 +363,7 @@ class _GamePageState extends State<GamePage>
                   _currentMode = GameMode.selection;
                 });
               },
-              child: Text(l10n.backToGames),
+              child: Text(l10n!.backToGames),
             ),
           ],
         );
@@ -384,7 +393,7 @@ class _GamePageState extends State<GamePage>
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(l10n.notEnoughEntries),
+          content: Text(l10n!.notEnoughEntries),
           backgroundColor: Colors.orange,
         ),
       );
@@ -526,6 +535,11 @@ class _GamePageState extends State<GamePage>
     required Color backgroundColor,
     String? audioHintEntryId,
     VoidCallback? onAudioHintTapped,
+    TextAlignVertical? textAlignVertical,
+    TextStyle? style,
+    bool? softWrap,
+    int? maxLines,
+    TextOverflow? overflow,
   }) {
     final Color cardColor = _matchCardColor(
       isSelected: isSelected,
@@ -545,11 +559,15 @@ class _GamePageState extends State<GamePage>
             Expanded(
               child: Text(
                 text,
-                softWrap: true,
-                style: const TextStyle(
-                  fontFamily: 'Open Sans',
-                  fontWeight: FontWeight.w600,
-                ),
+                softWrap: softWrap ?? true,
+                maxLines: maxLines ?? 3,
+                overflow: overflow ?? TextOverflow.ellipsis,
+                style:
+                    style ??
+                    const TextStyle(
+                      fontFamily: 'Open Sans',
+                      fontWeight: FontWeight.w600,
+                    ),
               ),
             ),
             if (audioHintEntryId != null &&
@@ -612,7 +630,7 @@ class _GamePageState extends State<GamePage>
             children: [
               CircularProgressIndicator(),
               const SizedBox(height: 16),
-              Text(l10n.loading),
+              Text(l10n!.loading),
             ],
           ),
         ),
@@ -630,15 +648,15 @@ class _GamePageState extends State<GamePage>
                 Icon(Icons.error_outline, size: 64, color: Colors.red.shade200),
                 const SizedBox(height: 16),
                 Text(
-                  l10n.gameLoadError,
+                  l10n!.gameLoadError,
                   style: const TextStyle(fontFamily: 'Open Sans'),
                 ),
                 const SizedBox(height: 16),
                 Text(_loadError.toString(), textAlign: TextAlign.center),
                 const SizedBox(height: 24),
                 ElevatedButton(
-                  onPressed: _loadEntries,
-                  child: Text(l10n.playAgain),
+                  onPressed: _initializeGameData,
+                  child: Text(l10n!.playAgain),
                 ),
               ],
             ),
@@ -670,7 +688,7 @@ class _GamePageState extends State<GamePage>
                     _startListenSession();
                   },
                   child: Text(
-                    l10n.listenAndGuess,
+                    l10n!.listenAndGuess,
                     style: const TextStyle(
                       fontSize: 18,
                       fontFamily: 'Open Sans',
@@ -694,7 +712,7 @@ class _GamePageState extends State<GamePage>
                     _startMatchRound();
                   },
                   child: Text(
-                    l10n.matchPairs,
+                    l10n!.matchPairs,
                     style: const TextStyle(
                       fontSize: 18,
                       fontFamily: 'Open Sans',
@@ -719,7 +737,7 @@ class _GamePageState extends State<GamePage>
         centerTitle: true,
         backgroundColor: AppPalette.archiveSurface,
         title: Text(
-          l10n.game,
+          l10n!.game,
           style: const TextStyle(
             fontFamily: 'Centro',
             fontWeight: FontWeight.w600,
@@ -799,7 +817,7 @@ class _GamePageState extends State<GamePage>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              l10n.correct,
+              l10n!.correct,
               style: const TextStyle(
                 fontWeight: FontWeight.w700,
                 fontFamily: 'Open Sans',
@@ -842,6 +860,10 @@ class _GamePageState extends State<GamePage>
     await _playEntryAudio(_listenEntry!);
 
     if (!mounted) return;
+
+    _currentRoundHadWrongAttempt = true;
+    _listenStreak = 0;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Column(
@@ -849,7 +871,7 @@ class _GamePageState extends State<GamePage>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '${l10n.wrongTryAgain} ${l10n.listenAndGuess}',
+              '${l10n!.wrongTryAgain} ${l10n!.listenAndGuess}',
               style: const TextStyle(
                 fontWeight: FontWeight.w700,
                 fontFamily: 'Open Sans',
@@ -857,7 +879,10 @@ class _GamePageState extends State<GamePage>
             ),
             const SizedBox(height: 4),
             Text(
-              '${l10n.listenAndGuess}: $chosenMeaning',
+              l10n!.wrongChoiceMeaning(
+                _listenEntry!['lemma'].toString(),
+                chosenMeaning,
+              ),
               style: const TextStyle(fontFamily: 'Open Sans'),
             ),
           ],
@@ -895,7 +920,7 @@ class _GamePageState extends State<GamePage>
           children: [
             CircularProgressIndicator(),
             const SizedBox(height: 16),
-            Text(l10n.loading),
+            Text(l10n!.loading),
           ],
         ),
       );
@@ -911,7 +936,7 @@ class _GamePageState extends State<GamePage>
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                '${l10n.listenAndGuess}: ${_listenRoundNumber + 1} / $_totalListenRounds',
+                '${l10n!.listenAndGuess}: ${_listenRoundNumber + 1} / $_totalListenRounds',
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -959,7 +984,7 @@ class _GamePageState extends State<GamePage>
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      l10n.listen,
+                      l10n!.listen,
                       style: const TextStyle(color: AppPalette.parchment),
                     ),
                   ],
@@ -1018,7 +1043,7 @@ class _GamePageState extends State<GamePage>
               Column(
                 children: [
                   Text(
-                    l10n.score,
+                    l10n!.scoreOutOf(_listenScore, _totalListenRounds),
                     style: const TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
@@ -1040,7 +1065,7 @@ class _GamePageState extends State<GamePage>
               Column(
                 children: [
                   Text(
-                    l10n.listenAndGuess,
+                    l10n!.currentStreak(_listenStreak),
                     style: const TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
@@ -1063,7 +1088,7 @@ class _GamePageState extends State<GamePage>
                 Column(
                   children: [
                     Text(
-                      l10n.listenAndGuess,
+                      l10n!.bestStreakLabel(_listenBestStreak),
                       style: const TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
@@ -1091,6 +1116,11 @@ class _GamePageState extends State<GamePage>
 
   Widget _buildMatchMode() {
     final l10n = AppLocalizations.of(context);
+
+    if (_isLoading) {
+      return Center(child: CircularProgressIndicator());
+    }
+
     if (_leftCards.isEmpty || _rightCards.isEmpty) {
       return Center(
         child: Column(
@@ -1098,7 +1128,7 @@ class _GamePageState extends State<GamePage>
           children: [
             CircularProgressIndicator(),
             const SizedBox(height: 16),
-            Text(l10n.loading),
+            Text(l10n!.loading),
           ],
         ),
       );
@@ -1117,7 +1147,7 @@ class _GamePageState extends State<GamePage>
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                l10n.matchCompleted,
+                l10n!.matchCompleted,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 20,
@@ -1135,200 +1165,185 @@ class _GamePageState extends State<GamePage>
       children: [
         Expanded(
           child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Text(
-                    l10n.game,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      fontFamily: 'Open Sans',
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Wrap(
-                    spacing: 16,
-                    runSpacing: 8,
-                    alignment: WrapAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        '${l10n.pairsMatched}: '
-                        '$matchedPairs / $totalPairs',
-                        style: const TextStyle(fontFamily: 'Open Sans'),
-                      ),
-                      Text(
-                        '${l10n.elapsedTime}: '
-                        '${_formatDuration(_matchElapsed)}',
-                        style: const TextStyle(fontFamily: 'Open Sans'),
-                      ),
-                      if (_bestMatchTimeSeconds > 0)
-                        Text(
-                          '${l10n.bestTime}: '
-                          '${_formatDuration(Duration(seconds: _bestMatchTimeSeconds))}',
-                          style: const TextStyle(fontFamily: 'Open Sans'),
-                        ),
-                    ],
-                  ),
-                ),
-                SizedBox(
-                  height: 120,
-                  child: ListView.builder(
-                    itemCount: _matchedPairs.length,
-                    itemBuilder: (BuildContext context, int index) {
-                      final pair = _matchedPairs[index];
-                      return AnimatedSlide(
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeOut,
-                        offset: const Offset(0, -0.1),
-                        child: Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: AppPalette.karelianPanel,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: AppPalette.parchment.withAlpha(64),
-                                width: 1,
-                              ),
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  pair.lemma,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontFamily: 'Open Sans',
-                                    color: AppPalette.ink,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                const Icon(
-                                  Icons.arrow_forward_ios_rounded,
-                                  size: 14,
-                                  color: AppPalette.ink,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  pair.meaning,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontFamily: 'Open Sans',
-                                    color: AppPalette.ink,
-                                    backgroundColor:
-                                        AppPalette.translationPanel,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      for (int i = 0; i < _leftCards.length; i++)
-                        if (!_matchedIds.contains(
-                          _leftCards[i]['lemma_id'].toString(),
-                        ))
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: _buildMatchCard(
-                              text: _leftCards[i]['lemma'].toString(),
-                              onTap: () {
-                                _selectLeftCard(_leftCards[i]);
-                              },
-                              isSelected:
-                                  _selectedLeftId ==
-                                  _leftCards[i]['lemma_id'].toString(),
-                              isMatched: _matchedIds.contains(
-                                _leftCards[i]['lemma_id'].toString(),
-                              ),
-                              isWrong:
-                                  _wrongLeftId ==
-                                  _leftCards[i]['lemma_id'].toString(),
-                              alignment: Alignment.centerLeft,
-                              backgroundColor: AppPalette.karelianPanel,
-                            ),
-                          ),
-                    ],
+                  child: _buildMatchZone(
+                    title: l10n!.karelianColumn,
+                    backgroundColor: AppPalette.karelianPanel,
+                    cards: _leftCards,
+                    isLeftSide: true,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildMatchZone(
+                    title: l10n!.translationColumn,
+                    backgroundColor: AppPalette.translationPanel,
+                    cards: _rightCards,
+                    isLeftSide: false,
                   ),
                 ),
               ],
             ),
           ),
         ),
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxHeight: 32),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Container(
-              color: AppPalette.translationPanel,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Text(
-                      l10n.translationColumn,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontFamily: 'Open Sans',
-                        color: AppPalette.ink,
-                      ),
-                    ),
-                  ),
-                  if (_rightCards.isNotEmpty) ...[
-                    for (int i = 0; i < _rightCards.length; i++)
-                      if (!_matchedIds.contains(
-                        _rightCards[i]['lemma_id'].toString(),
-                      ))
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: _buildMatchCard(
-                            text: _rightCards[i]['meaning_text'].toString(),
-                            onTap: () {
-                              _selectRightCard(_rightCards[i]);
-                            },
-                            isSelected:
-                                _selectedRightId ==
-                                _rightCards[i]['lemma_id'].toString(),
-                            isMatched: _matchedIds.contains(
-                              _rightCards[i]['lemma_id'].toString(),
-                            ),
-                            isWrong:
-                                _wrongRightId ==
-                                _rightCards[i]['lemma_id'].toString(),
-                            alignment: Alignment.centerRight,
-                            backgroundColor: AppPalette.translationPanel,
-                            audioHintEntryId: _rightCards[i]['lemma_id']
-                                .toString(),
-                            onAudioHintTapped: () =>
-                                _handleAudioHintTapped(_rightCards[i]),
-                          ),
-                        ),
-                  ],
-                ],
-              ),
+        _buildMatchedPairsFooter(),
+      ],
+    );
+  }
+
+  Widget _buildMatchZone({
+    required String title,
+    required Color backgroundColor,
+    required List<Map<String, dynamic>> cards,
+    required bool isLeftSide,
+  }) {
+    final l10n = AppLocalizations.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Text(
+            title,
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+              fontFamily: 'Open Sans',
+              fontSize: 14,
             ),
           ),
         ),
+        Expanded(
+          child: ListView.builder(
+            itemCount: cards.length,
+            itemBuilder: (BuildContext context, int index) {
+              final card = cards[index];
+              final cardId = card['lemma_id'].toString();
+
+              if (_matchedIds.contains(cardId)) {
+                return const SizedBox.shrink();
+              }
+
+              if (isLeftSide) {
+                return _buildMatchCard(
+                  text: card['lemma'].toString(),
+                  onTap: () {
+                    _selectLeftCard(card);
+                  },
+                  isSelected: _selectedLeftId == cardId,
+                  isMatched: false,
+                  isWrong: _wrongLeftId == cardId,
+                  alignment: Alignment.centerLeft,
+                  backgroundColor: backgroundColor,
+                );
+              } else {
+                final cardStyle = const TextStyle(
+                  fontSize: 14,
+                  fontFamily: 'Open Sans',
+                  fontWeight: FontWeight.w600,
+                );
+                return _buildMatchCard(
+                  text: card['meaning_text'].toString(),
+                  textAlignVertical: TextAlignVertical.center,
+                  onTap: () {
+                    _selectRightCard(card);
+                  },
+                  isSelected: _selectedRightId == cardId,
+                  isMatched: false,
+                  isWrong: _wrongRightId == cardId,
+                  alignment: Alignment.centerRight,
+                  backgroundColor: backgroundColor,
+                  audioHintEntryId: cardId,
+                  onAudioHintTapped: () => _handleAudioHintTapped(card),
+                  softWrap: true,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                );
+              }
+            },
+          ),
+        ),
       ],
+    );
+  }
+
+  Widget _buildMatchedPairsFooter() {
+    final l10n = AppLocalizations.of(context);
+
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.28,
+      ),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
+        decoration: const BoxDecoration(
+          color: AppPalette.archiveSurface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              l10n!.restoredPairs,
+              style: const TextStyle(
+                color: AppPalette.parchment,
+                fontWeight: FontWeight.w600,
+                fontFamily: 'Open Sans',
+              ),
+            ),
+            const SizedBox(height: 6),
+            Expanded(
+              child: ListView.builder(
+                itemCount: _matchedPairs.length,
+                itemBuilder: (context, index) {
+                  final pair = _matchedPairs[index];
+
+                  return AnimatedSlide(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeOut,
+                    offset: Offset.zero,
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              pair.lemma,
+                              style: const TextStyle(
+                                color: AppPalette.parchment,
+                                fontFamily: 'Open Sans',
+                              ),
+                            ),
+                          ),
+                          const Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            size: 12,
+                            color: AppPalette.amber,
+                          ),
+                          Expanded(
+                            child: Text(
+                              pair.meaning,
+                              style: const TextStyle(
+                                color: AppPalette.parchment,
+                                fontFamily: 'Open Sans',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -1401,7 +1416,51 @@ class _GamePageState extends State<GamePage>
       });
 
       if (_matchedIds.length == _matchEntries.length) {
-        await _completeMatchRound();
+        _isMatchCompleted = true;
+        _matchTimer?.cancel();
+        if (!mounted) return;
+
+        await _saveMatchBestTime(_matchElapsed);
+        if (!mounted) return;
+
+        final l10n = AppLocalizations.of(context);
+        await showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (dialogContext) {
+            return AlertDialog(
+              title: Text(
+                l10n!.matchCompleted,
+                style: const TextStyle(
+                  fontFamily: 'Centro',
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              content: Text(
+                '${l10n!.elapsedTime}: '
+                '${_formatDuration(_matchElapsed)}',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop();
+                    _startMatchRound();
+                  },
+                  child: Text(l10n!.playAgain),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop();
+                    setState(() {
+                      _currentMode = GameMode.selection;
+                    });
+                  },
+                  child: Text(l10n!.backToGames),
+                ),
+              ],
+            );
+          },
+        );
       }
       return;
     }
@@ -1455,14 +1514,14 @@ class _GamePageState extends State<GamePage>
       builder: (dialogContext) {
         return AlertDialog(
           title: Text(
-            l10n.matchCompleted,
+            l10n!.matchCompleted,
             style: const TextStyle(
               fontFamily: 'Centro',
               fontWeight: FontWeight.w600,
             ),
           ),
           content: Text(
-            '${l10n.elapsedTime}: '
+            '${l10n!.elapsedTime}: '
             '${_formatDuration(_matchElapsed)}',
           ),
           actions: [
@@ -1471,7 +1530,7 @@ class _GamePageState extends State<GamePage>
                 Navigator.of(dialogContext).pop();
                 _startMatchRound();
               },
-              child: Text(l10n.playAgain),
+              child: Text(l10n!.playAgain),
             ),
             TextButton(
               onPressed: () {
@@ -1480,7 +1539,7 @@ class _GamePageState extends State<GamePage>
                   _currentMode = GameMode.selection;
                 });
               },
-              child: Text(l10n.backToGames),
+              child: Text(l10n!.backToGames),
             ),
           ],
         );

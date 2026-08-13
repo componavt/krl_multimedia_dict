@@ -51,7 +51,7 @@ class _DetailPageState extends State<DetailPage> {
       appBar: AppBar(
         centerTitle: true,
         title: Text(
-          l10n.appTitle,
+          l10n!.appTitle,
           style: const TextStyle(
             fontFamily: 'Centro',
             fontWeight: FontWeight.w600,
@@ -74,7 +74,7 @@ class _DetailPageState extends State<DetailPage> {
             padding: const EdgeInsets.only(top: 20, bottom: 20),
             child: Text.rich(
               TextSpan(
-                text: '${l10n.partOfSpeech}: ',
+                text: '${l10n!.partOfSpeech}: ',
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
@@ -94,7 +94,7 @@ class _DetailPageState extends State<DetailPage> {
           ),
           Text.rich(
             TextSpan(
-              text: '${l10n.meanings}:\n',
+              text: '${l10n!.meanings}:\n',
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
@@ -113,31 +113,49 @@ class _DetailPageState extends State<DetailPage> {
           ),
         ],
       ),
-      floatingActionButton: Container(
-        margin: const EdgeInsets.only(bottom: 30, right: 20),
-        width: 80,
-        height: 80,
-        child: FloatingActionButton(
+      floatingActionButton: SizedBox(
+        width: 168,
+        height: 70,
+        child: ElevatedButton.icon(
           onPressed: () async {
-            if (!mounted) return;
-            final scaffold = ScaffoldMessenger.of(context);
             try {
               await _playAudio(widget.audioPath);
-            } catch (e) {
+            } catch (error) {
               if (!mounted) return;
-              scaffold.showSnackBar(
+
+              ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('${l10n.audioPlaybackError}: $e'),
+                  content: Text('${l10n!.audioPlaybackError}: $error'),
                   backgroundColor: AppPalette.brickRed,
                 ),
               );
             }
           },
-          backgroundColor: AppPalette.mutedBrown,
-          child: const Icon(Icons.play_arrow_rounded, size: 40),
+          icon: const Icon(
+            Icons.play_arrow_rounded,
+            size: 42,
+            color: AppPalette.amber,
+          ),
+          label: Text(
+            l10n!.listen,
+            style: const TextStyle(
+              color: AppPalette.parchment,
+              fontFamily: 'Open Sans',
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.5,
+            ),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppPalette.archiveSurface,
+            foregroundColor: AppPalette.parchment,
+            side: const BorderSide(color: AppPalette.amber, width: 2),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
         ),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.miniEndFloat,
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 }
@@ -269,9 +287,9 @@ class _MyAppState extends State<MyApp> {
 
   String _searchModeLabel(AppLocalizations l10n) {
     return switch (_searchMode) {
-      SearchMode.atStart => l10n.searchAtStart,
-      SearchMode.inside => l10n.searchInside,
-      SearchMode.atEnd => l10n.searchAtEnd,
+      SearchMode.atStart => l10n!.searchAtStart,
+      SearchMode.inside => l10n!.searchInside,
+      SearchMode.atEnd => l10n!.searchAtEnd,
     };
   }
 
@@ -303,6 +321,92 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
+  String _textSizeLabel(AppTextSize size, AppLocalizations l10n) {
+    switch (size) {
+      case AppTextSize.small:
+        return l10n!.textSizeSmall;
+      case AppTextSize.medium:
+        return l10n!.textSizeMedium;
+      case AppTextSize.large:
+        return l10n!.textSizeLarge;
+    }
+  }
+
+  void _showTextSizeDialog(BuildContext context, AppLocalizations l10n) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppPalette.archiveSurface,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: ListBody(
+            children: [
+              SizedBox(
+                height: 56,
+                child: ListTile(
+                  leading: const Text(
+                    '•',
+                    style: TextStyle(color: AppPalette.parchment),
+                  ),
+                  title: Text(
+                    l10n!.textSizeSmall,
+                    style: const TextStyle(
+                      color: AppPalette.parchment,
+                      fontFamily: 'Open Sans',
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    widget.textScaleController.setSize(AppTextSize.small);
+                  },
+                ),
+              ),
+              SizedBox(
+                height: 56,
+                child: ListTile(
+                  leading: const Text(
+                    '•',
+                    style: TextStyle(color: AppPalette.parchment),
+                  ),
+                  title: Text(
+                    l10n!.textSizeMedium,
+                    style: const TextStyle(
+                      color: AppPalette.parchment,
+                      fontFamily: 'Open Sans',
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    widget.textScaleController.setSize(AppTextSize.medium);
+                  },
+                ),
+              ),
+              SizedBox(
+                height: 56,
+                child: ListTile(
+                  leading: const Text(
+                    '•',
+                    style: TextStyle(color: AppPalette.parchment),
+                  ),
+                  title: Text(
+                    l10n!.textSizeLarge,
+                    style: const TextStyle(
+                      color: AppPalette.parchment,
+                      fontFamily: 'Open Sans',
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    widget.textScaleController.setSize(AppTextSize.large);
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -319,6 +423,7 @@ class _MyAppState extends State<MyApp> {
           child: TextField(
             controller: _searchController,
             focusNode: _searchFocusNode,
+            textAlignVertical: TextAlignVertical.center,
             style: const TextStyle(
               color: AppPalette.ink,
               fontFamily: 'Open Sans',
@@ -326,7 +431,7 @@ class _MyAppState extends State<MyApp> {
             ),
             cursorColor: AppPalette.mutedBrown,
             decoration: InputDecoration(
-              hintText: l10n.searchHint,
+              hintText: l10n!.searchHint,
               hintStyle: const TextStyle(
                 color: AppPalette.mutedBrown,
                 fontFamily: 'Open Sans',
@@ -342,14 +447,11 @@ class _MyAppState extends State<MyApp> {
                         Icons.clear,
                         color: AppPalette.mutedBrown,
                       ),
-                      tooltip: l10n.clearSearch,
+                      tooltip: l10n!.clearSearch,
                       onPressed: _clearSearch,
                     ),
               border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 10,
-              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12),
             ),
             onTap: _showSearchHistory,
             onChanged: (text) {
@@ -369,7 +471,7 @@ class _MyAppState extends State<MyApp> {
                     child: Padding(
                       padding: const EdgeInsets.all(24),
                       child: Text(
-                        '${l10n.dictionaryLoadError}:\n$_loadError',
+                        '${l10n!.dictionaryLoadError}:\n$_loadError',
                         textAlign: TextAlign.center,
                       ),
                     ),
@@ -379,7 +481,7 @@ class _MyAppState extends State<MyApp> {
                     child: Padding(
                       padding: const EdgeInsets.all(24),
                       child: Text(
-                        l10n.noResults,
+                        l10n!.noResults,
                         style: const TextStyle(fontFamily: 'Open Sans'),
                       ),
                     ),
@@ -401,7 +503,7 @@ class _MyAppState extends State<MyApp> {
                             const Icon(Icons.history),
                             const SizedBox(width: 8),
                             Text(
-                              l10n.searchHistory,
+                              l10n!.searchHistory,
                               style: const TextStyle(
                                 fontWeight: FontWeight.w600,
                                 fontFamily: 'Open Sans',
@@ -411,7 +513,7 @@ class _MyAppState extends State<MyApp> {
                             IconButton(
                               icon: const Icon(Icons.clear),
                               onPressed: _clearHistory,
-                              tooltip: l10n.clearHistory,
+                              tooltip: l10n!.clearHistory,
                             ),
                           ],
                         ),
@@ -484,7 +586,7 @@ class _MyAppState extends State<MyApp> {
               alignment: Alignment.bottomLeft,
               decoration: const BoxDecoration(color: AppPalette.archiveSurface),
               child: Text(
-                l10n.menuTitle,
+                l10n!.menuTitle,
                 style: const TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 18,
@@ -495,7 +597,7 @@ class _MyAppState extends State<MyApp> {
             ),
             ListTile(
               leading: const Icon(Icons.videogame_asset),
-              title: Text(l10n.play),
+              title: Text(l10n!.play),
               onTap: () {
                 Navigator.of(context).pop();
                 Navigator.of(context).push(
@@ -514,7 +616,7 @@ class _MyAppState extends State<MyApp> {
               dense: true,
               visualDensity: const VisualDensity(vertical: 0),
               title: Text(
-                l10n.searchMode,
+                l10n!.searchMode,
                 style: const TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 16,
@@ -535,7 +637,7 @@ class _MyAppState extends State<MyApp> {
               leading: const Icon(Icons.info_outline),
               minLeadingWidth: 10,
               title: Text(
-                l10n.about,
+                l10n!.about,
                 style: const TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 16,
@@ -551,7 +653,7 @@ class _MyAppState extends State<MyApp> {
             ),
             ListTile(
               leading: const Icon(Icons.insights),
-              title: Text(l10n.learningStatistics),
+              title: Text(l10n!.learningStatistics),
               onTap: () {
                 Navigator.of(context).pop();
                 Navigator.of(context).push(
@@ -562,11 +664,19 @@ class _MyAppState extends State<MyApp> {
               },
             ),
             ListTile(
+              leading: const Icon(Icons.text_fields),
+              title: Text(l10n!.textSize),
+              subtitle: Text(
+                _textSizeLabel(widget.textScaleController.size, l10n),
+              ),
+              onTap: () => _showTextSizeDialog(context, l10n),
+            ),
+            ListTile(
               leading: const Icon(Icons.language),
               title: Text(
                 widget.localeController.isRussian
-                    ? l10n.switchToEnglish
-                    : l10n.switchToRussian,
+                    ? l10n!.switchToEnglish
+                    : l10n!.switchToRussian,
                 style: const TextStyle(
                   fontFamily: 'Open Sans',
                   fontWeight: FontWeight.w600,
@@ -623,7 +733,7 @@ class _AboutPageState extends State<AboutPage> {
       appBar: AppBar(
         centerTitle: true,
         title: Text(
-          l10n.appTitle,
+          l10n!.appTitle,
           style: const TextStyle(
             fontFamily: 'Centro',
             fontWeight: FontWeight.w600,
@@ -639,7 +749,7 @@ class _AboutPageState extends State<AboutPage> {
             Container(
               padding: const EdgeInsets.only(top: 10),
               child: Text(
-                '${l10n.versionLabel} $_appVersion',
+                '${l10n!.versionLabel} $_appVersion',
                 style: const TextStyle(
                   fontWeight: FontWeight.w500,
                   fontSize: 12,
@@ -650,7 +760,7 @@ class _AboutPageState extends State<AboutPage> {
             Container(
               padding: const EdgeInsets.only(top: 20),
               child: Text(
-                '${l10n.aboutDescription}\n\n${l10n.dictionarySource} dictorpus.krc.karelia.ru',
+                '${l10n!.aboutDescription}\n\n${l10n!.dictionarySource} dictorpus.krc.karelia.ru',
                 style: const TextStyle(
                   fontWeight: FontWeight.w500,
                   fontSize: 20,
