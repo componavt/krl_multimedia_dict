@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:vepkar_audio/dictionary_home_page.dart';
 import 'package:vepkar_audio/l10n/app_localizations.dart';
 import 'package:vepkar_audio/locale_controller.dart';
+import 'package:vepkar_audio/text_scale_controller.dart';
 
 void main() {
   testWidgets('search input is readable (has text, search icon, clear icon)', (
@@ -14,7 +15,10 @@ void main() {
         locale: const Locale('en'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        home: MyApp(localeController: LocaleController()),
+        home: MyApp(
+          localeController: LocaleController(),
+          textScaleController: TextScaleController(),
+        ),
       ),
     );
 
@@ -34,7 +38,10 @@ void main() {
         locale: const Locale('en'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        home: MyApp(localeController: LocaleController()),
+        home: MyApp(
+          localeController: LocaleController(),
+          textScaleController: TextScaleController(),
+        ),
       ),
     );
 
@@ -50,7 +57,10 @@ void main() {
         locale: const Locale('en'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        home: MyApp(localeController: LocaleController()),
+        home: MyApp(
+          localeController: LocaleController(),
+          textScaleController: TextScaleController(),
+        ),
       ),
     );
 
@@ -68,7 +78,10 @@ void main() {
         locale: const Locale('en'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        home: MyApp(localeController: LocaleController()),
+        home: MyApp(
+          localeController: LocaleController(),
+          textScaleController: TextScaleController(),
+        ),
       ),
     );
 

@@ -10,6 +10,7 @@ import 'learning_statistics_page.dart';
 import 'l10n/app_localizations.dart';
 import 'locale_controller.dart';
 import 'search_utils.dart';
+import 'text_scale_controller.dart';
 
 class DetailPage extends StatefulWidget {
   final String word;
@@ -118,11 +119,13 @@ class _DetailPageState extends State<DetailPage> {
         height: 80,
         child: FloatingActionButton(
           onPressed: () async {
+            if (!mounted) return;
+            final scaffold = ScaffoldMessenger.of(context);
             try {
               await _playAudio(widget.audioPath);
             } catch (e) {
               if (!mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
+              scaffold.showSnackBar(
                 SnackBar(
                   content: Text('${l10n.audioPlaybackError}: $e'),
                   backgroundColor: AppPalette.brickRed,
@@ -140,9 +143,14 @@ class _DetailPageState extends State<DetailPage> {
 }
 
 class MyApp extends StatefulWidget {
-  const MyApp({super.key, required this.localeController});
+  const MyApp({
+    super.key,
+    required this.localeController,
+    required this.textScaleController,
+  });
 
   final LocaleController localeController;
+  final TextScaleController textScaleController;
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -150,13 +158,14 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   final DictionaryRepository _repository = DictionaryRepository();
-  late final Future<List<dynamic>> _entriesFuture;
   List<dynamic> _allEntries = <dynamic>[];
   List<dynamic> _filteredData = <dynamic>[];
   SearchMode _searchMode = SearchMode.atStart;
   String _value = "";
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
+  bool _isLoading = true;
+  Object? _loadError;
 
   static const String _searchHistoryKey = 'search_history';
   static const int _maxSearchHistoryLength = 20;
@@ -167,8 +176,29 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    _entriesFuture = _repository.loadEntries();
     _loadSearchHistory();
+    _loadDictionary();
+  }
+
+  Future<void> _loadDictionary() async {
+    try {
+      final entries = await _repository.loadEntries();
+
+      if (!mounted) return;
+
+      setState(() {
+        _allEntries = List<dynamic>.from(entries);
+        _filteredData = List<dynamic>.from(entries);
+        _isLoading = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        _loadError = error;
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -332,141 +362,115 @@ class _MyAppState extends State<MyApp> {
       body: Column(
         children: [
           Expanded(
-            child: FutureBuilder<List<dynamic>>(
-              future: _entriesFuture,
-              builder:
-                  (
-                    BuildContext context,
-                    AsyncSnapshot<List<dynamic>> snapshot,
-                  ) {
-                    if (snapshot.hasError) {
-                      return Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(24),
-                          child: Text(
-                            '${l10n.dictionaryLoadError}:\n${snapshot.error}',
-                            textAlign: TextAlign.center,
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _loadError != null
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Text(
+                        '${l10n.dictionaryLoadError}:\n$_loadError',
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  )
+                : _value.isNotEmpty && _filteredData.isEmpty
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Text(
+                        l10n.noResults,
+                        style: const TextStyle(fontFamily: 'Open Sans'),
+                      ),
+                    ),
+                  )
+                : _showHistory && _searchHistory.isNotEmpty
+                ? Column(
+                    children: [
+                      Container(
+                        height: 40,
+                        alignment: Alignment.centerLeft,
+                        padding: const EdgeInsets.only(left: 16, right: 16),
+                        decoration: BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(color: Colors.grey.shade300),
                           ),
                         ),
-                      );
-                    }
-
-                    if (!snapshot.hasData) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-
-                    if (_allEntries.isEmpty && _filteredData.isEmpty) {
-                      setState(() {
-                        _allEntries = List<dynamic>.from(snapshot.data!);
-                        _filteredData = List<dynamic>.from(_allEntries);
-                      });
-                    }
-
-                    if (_value.isNotEmpty && _filteredData.isEmpty) {
-                      return Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(24),
-                          child: Text(
-                            l10n.noResults,
-                            style: const TextStyle(fontFamily: 'Open Sans'),
-                          ),
-                        ),
-                      );
-                    }
-
-                    if (_showHistory && _searchHistory.isNotEmpty) {
-                      return Column(
-                        children: [
-                          Container(
-                            height: 40,
-                            alignment: Alignment.centerLeft,
-                            padding: const EdgeInsets.only(left: 16, right: 16),
-                            decoration: BoxDecoration(
-                              border: Border(
-                                bottom: BorderSide(color: Colors.grey.shade300),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.history),
+                            const SizedBox(width: 8),
+                            Text(
+                              l10n.searchHistory,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontFamily: 'Open Sans',
                               ),
                             ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.history),
-                                const SizedBox(width: 8),
-                                Text(
-                                  l10n.searchHistory,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontFamily: 'Open Sans',
-                                  ),
-                                ),
-                                const Spacer(),
-                                IconButton(
-                                  icon: const Icon(Icons.clear),
-                                  onPressed: _clearHistory,
-                                  tooltip: l10n.clearHistory,
-                                ),
-                              ],
+                            const Spacer(),
+                            IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: _clearHistory,
+                              tooltip: l10n.clearHistory,
                             ),
-                          ),
-                          Expanded(
-                            child: ListView.builder(
-                              itemCount: _searchHistory.length,
-                              itemBuilder: (BuildContext context, int index) {
-                                return ListTile(
-                                  leading: const Icon(Icons.history),
-                                  title: Text(
-                                    _searchHistory[index],
-                                    style: const TextStyle(
-                                      fontFamily: 'Open Sans',
-                                    ),
-                                  ),
-                                  onTap: () {
-                                    _useHistoryQuery(_searchHistory[index]);
-                                  },
-                                );
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        child: ListView.builder(
+                          itemCount: _searchHistory.length,
+                          itemBuilder: (BuildContext context, int index) {
+                            return ListTile(
+                              leading: const Icon(Icons.history),
+                              title: Text(
+                                _searchHistory[index],
+                                style: const TextStyle(fontFamily: 'Open Sans'),
+                              ),
+                              onTap: () {
+                                _useHistoryQuery(_searchHistory[index]);
                               },
-                            ),
-                          ),
-                        ],
-                      );
-                    }
-
-                    return ListView.builder(
-                      itemCount: _filteredData.length,
-                      itemBuilder: (BuildContext context, int index) {
-                        return ListTile(
-                          title: Text(
-                            _filteredData[index]['lemma'],
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontFamily: 'Open Sans',
-                            ),
-                          ),
-                          subtitle: Text(
-                            _filteredData[index]['meaning_text'],
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontFamily: 'Open Sans',
-                            ),
-                          ),
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => DetailPage(
-                                  word: _filteredData[index]['lemma'],
-                                  part: _filteredData[index]['part_of_speech'],
-                                  description:
-                                      _filteredData[index]['meaning_text'],
-                                  audioPath:
-                                      'audio/${_filteredData[index]['lemma_id']}.wav',
-                                ),
-                              ),
                             );
                           },
-                        );
-                      },
-                    );
-                  },
-            ),
+                        ),
+                      ),
+                    ],
+                  )
+                : ListView.builder(
+                    itemCount: _filteredData.length,
+                    itemBuilder: (BuildContext context, int index) {
+                      return ListTile(
+                        title: Text(
+                          _filteredData[index]['lemma'],
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontFamily: 'Open Sans',
+                          ),
+                        ),
+                        subtitle: Text(
+                          _filteredData[index]['meaning_text'],
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontFamily: 'Open Sans',
+                          ),
+                        ),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => DetailPage(
+                                word: _filteredData[index]['lemma'],
+                                part: _filteredData[index]['part_of_speech'],
+                                description:
+                                    _filteredData[index]['meaning_text'],
+                                audioPath:
+                                    'audio/${_filteredData[index]['lemma_id']}.wav',
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
           ),
         ],
       ),
@@ -496,8 +500,10 @@ class _MyAppState extends State<MyApp> {
                 Navigator.of(context).pop();
                 Navigator.of(context).push(
                   MaterialPageRoute<void>(
-                    builder: (context) =>
-                        GamePage(localeController: widget.localeController),
+                    builder: (context) => GamePage(
+                      localeController: widget.localeController,
+                      textScaleController: widget.textScaleController,
+                    ),
                   ),
                 );
               },

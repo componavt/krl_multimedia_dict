@@ -10,6 +10,7 @@ import 'app_theme.dart';
 import 'dictionary_repository.dart';
 import 'l10n/app_localizations.dart';
 import 'locale_controller.dart';
+import 'text_scale_controller.dart';
 import 'word_learning_repository.dart';
 import 'word_learning_record.dart';
 
@@ -32,9 +33,14 @@ class MatchedPair {
 }
 
 class GamePage extends StatefulWidget {
-  const GamePage({super.key, required this.localeController});
+  const GamePage({
+    super.key,
+    required this.localeController,
+    required this.textScaleController,
+  });
 
   final LocaleController localeController;
+  final TextScaleController textScaleController;
 
   @override
   State<GamePage> createState() => _GamePageState();
@@ -296,9 +302,9 @@ class _GamePageState extends State<GamePage>
 
   Future<void> _completeListenSession() async {
     await _learningRepository.completeActiveSession();
+    if (!mounted) return;
     final l10n = AppLocalizations.of(context);
 
-    if (!mounted) return;
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -827,7 +833,6 @@ class _GamePageState extends State<GamePage>
   }
 
   Future<void> _handleListenWrong() async {
-    final entryId = _listenEntry!['lemma_id'].toString();
     final l10n = AppLocalizations.of(context);
     final chosenEntry = _listenChoices.firstWhere(
       (c) => c['lemma_id'].toString() == _selectedListenId,
@@ -836,6 +841,7 @@ class _GamePageState extends State<GamePage>
 
     await _playEntryAudio(_listenEntry!);
 
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Column(
@@ -1199,7 +1205,7 @@ class _GamePageState extends State<GamePage>
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
-                                  '${pair.lemma}',
+                                  pair.lemma,
                                   style: const TextStyle(
                                     fontSize: 14,
                                     fontFamily: 'Open Sans',
@@ -1214,7 +1220,7 @@ class _GamePageState extends State<GamePage>
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
-                                  '${pair.meaning}',
+                                  pair.meaning,
                                   style: const TextStyle(
                                     fontSize: 14,
                                     fontFamily: 'Open Sans',
@@ -1287,7 +1293,7 @@ class _GamePageState extends State<GamePage>
                       ),
                     ),
                   ),
-                  if (_rightCards.length > 0) ...[
+                  if (_rightCards.isNotEmpty) ...[
                     for (int i = 0; i < _rightCards.length; i++)
                       if (!_matchedIds.contains(
                         _rightCards[i]['lemma_id'].toString(),
