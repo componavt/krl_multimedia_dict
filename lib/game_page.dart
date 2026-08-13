@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:math';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:audioplayers/audioplayers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -8,8 +10,25 @@ import 'app_theme.dart';
 import 'dictionary_repository.dart';
 import 'l10n/app_localizations.dart';
 import 'locale_controller.dart';
+import 'word_learning_repository.dart';
 
 enum GameMode { selection, listen, match }
+
+class MatchedPair {
+  final String id;
+  final String lemma;
+  final String meaning;
+
+  MatchedPair({required this.id, required this.lemma, required this.meaning});
+
+  MatchedPair copyWith({String? id, String? lemma, String? meaning}) {
+    return MatchedPair(
+      id: id ?? this.id,
+      lemma: lemma ?? this.lemma,
+      meaning: meaning ?? this.meaning,
+    );
+  }
+}
 
 class GamePage extends StatefulWidget {
   const GamePage({super.key, required this.localeController});
@@ -20,21 +39,31 @@ class GamePage extends StatefulWidget {
   State<GamePage> createState() => _GamePageState();
 }
 
-class _GamePageState extends State<GamePage> {
+class _GamePageState extends State<GamePage>
+    with TickerProviderStateMixin<GamePage> {
   final DictionaryRepository _repository = DictionaryRepository();
+  final WordLearningRepository _learningRepository = WordLearningRepository();
   final AudioPlayer _audioPlayer = AudioPlayer();
-  List<dynamic> _entries = [];
+  List<Map<String, dynamic>> _entries = [];
   bool _isLoading = true;
   GameMode _currentMode = GameMode.selection;
   Object? _loadError;
+
+  final Set<String> _usedEntryIds = <String>{};
+  int _listenRoundNumber = 0;
+  int _listenScore = 0;
+  int _listenStreak = 0;
+  int _listenBestStreak = 0;
+  bool _currentRoundHadWrongAttempt = false;
+  bool _isListenSessionCompleted = false;
+  Timer? _showAssociationTimer;
+
+  final Set<String> _availableAudioIds = <String>{};
 
   Map<String, dynamic>? _listenEntry;
   List<Map<String, dynamic>> _listenChoices = <Map<String, dynamic>>[];
   String? _selectedListenId;
   bool? _listenAnswerIsCorrect;
-  int _listenScore = 0;
-  int _listenBestScore = 0;
-  bool _isListenRoundActive = false;
 
   List<Map<String, dynamic>> _matchEntries = <Map<String, dynamic>>[];
   List<Map<String, dynamic>> _leftCards = <Map<String, dynamic>>[];
@@ -51,11 +80,16 @@ class _GamePageState extends State<GamePage> {
   Duration _matchElapsed = Duration.zero;
   int _bestMatchTimeSeconds = 0;
 
+  final List<MatchedPair> _matchedPairs = <MatchedPair>[];
+
+  static const int _totalListenRounds = 10;
+
   @override
   void initState() {
     super.initState();
     _loadEntries();
     _loadBestScores();
+    _preloadAudioAssets();
   }
 
   Future<void> _loadEntries() async {
@@ -64,7 +98,7 @@ class _GamePageState extends State<GamePage> {
 
       if (!mounted) return;
       setState(() {
-        _entries = entries;
+        _entries = entries.cast<Map<String, dynamic>>();
         _isLoading = false;
       });
     } catch (error) {
@@ -92,19 +126,42 @@ class _GamePageState extends State<GamePage> {
     final prefs = await SharedPreferences.getInstance();
     if (!mounted) return;
     setState(() {
-      _listenBestScore = prefs.getInt('game_best_score_mode_a') ?? 0;
       _bestMatchTimeSeconds = prefs.getInt('game_best_time_mode_b') ?? 0;
     });
   }
 
-  Future<void> _saveListenBestScore(int score) async {
-    final prefs = await SharedPreferences.getInstance();
-    if (score > _listenBestScore) {
-      await prefs.setInt('game_best_score_mode_a', score);
+  Future<void> _preloadAudioAssets() async {
+    final validEntries = _validEntries;
+    final audioIds = <String>[];
+    for (final entry in validEntries) {
+      final lemmaId = entry['lemma_id'].toString();
+      try {
+        await rootBundle.load('audio/$lemmaId.wav');
+        audioIds.add(lemmaId);
+      } catch (e) {
+        // Asset doesn't exist, skip it
+      }
+    }
+    if (!mounted) return;
+    setState(() {
+      _availableAudioIds.addAll(audioIds);
+    });
+    await _learningRepository.setAudioEnabledWordIds(audioIds.toSet());
+  }
+
+  Future<void> _playAudioHint(String lemmaId) async {
+    await _audioPlayer.stop();
+    try {
+      await _audioPlayer.play(AssetSource('audio/$lemmaId.wav'));
+    } catch (e) {
       if (!mounted) return;
-      setState(() {
-        _listenBestScore = score;
-      });
+      final l10n = AppLocalizations.of(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${l10n.audioPlaybackError}: $e'),
+          backgroundColor: AppPalette.brickRed,
+        ),
+      );
     }
   }
 
@@ -156,7 +213,19 @@ class _GamePageState extends State<GamePage> {
     return AppPalette.mutedBrown;
   }
 
+  Color _listenProgressColor() {
+    final progress = _listenRoundNumber / _totalListenRounds;
+    if (progress >= 1.0) return AppPalette.mossGreen;
+    if (progress >= 0.7) return AppPalette.amber;
+    return AppPalette.parchment;
+  }
+
   Future<void> _startListenRound() async {
+    if (_listenRoundNumber >= _totalListenRounds || _isListenSessionCompleted) {
+      _completeListenSession();
+      return;
+    }
+
     final l10n = AppLocalizations.of(context);
     final validEntries = _validEntries;
     if (validEntries.length < 4) {
@@ -171,7 +240,16 @@ class _GamePageState extends State<GamePage> {
     }
 
     final random = Random();
-    final correct = validEntries[random.nextInt(validEntries.length)];
+    final availableEntries = validEntries.where((entry) {
+      final id = entry['lemma_id'].toString();
+      return !_usedEntryIds.contains(id);
+    }).toList();
+
+    if (availableEntries.isEmpty) {
+      _usedEntryIds.clear();
+    }
+
+    final correct = availableEntries[random.nextInt(availableEntries.length)];
     final choices = <Map<String, dynamic>>[correct];
 
     final distractors =
@@ -187,16 +265,94 @@ class _GamePageState extends State<GamePage> {
     choices.addAll(distractors.take(3));
     choices.shuffle(random);
 
+    final lemmaId = correct['lemma_id'].toString();
+    _usedEntryIds.add(lemmaId);
+
     if (!mounted) return;
     setState(() {
       _listenEntry = correct;
       _listenChoices = choices;
       _selectedListenId = null;
       _listenAnswerIsCorrect = null;
-      _isListenRoundActive = true;
+      _currentRoundHadWrongAttempt = false;
     });
 
     await _playEntryAudio(correct);
+  }
+
+  Future<void> _completeListenSession() async {
+    await _learningRepository.completeActiveSession();
+    final l10n = AppLocalizations.of(context);
+
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(
+            l10n.listenAndGuess,
+            style: const TextStyle(
+              fontFamily: 'Centro',
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '${l10n.score}: $_listenScore / $_totalListenRounds',
+                  style: const TextStyle(fontFamily: 'Open Sans'),
+                ),
+                if (_listenStreak > 1)
+                  Text(
+                    '${l10n.listenAndGuess} $_listenStreak',
+                    style: const TextStyle(fontFamily: 'Open Sans'),
+                  ),
+                if (_listenBestStreak > 1)
+                  Text(
+                    '${l10n.listenAndGuess} $_listenBestStreak',
+                    style: const TextStyle(fontFamily: 'Open Sans'),
+                  ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                _resetListenSession();
+              },
+              child: Text(l10n.playAgain),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                setState(() {
+                  _currentMode = GameMode.selection;
+                });
+              },
+              child: Text(l10n.backToGames),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _resetListenSession() async {
+    await _learningRepository.completeActiveSession();
+    if (!mounted) return;
+    setState(() {
+      _listenRoundNumber = 0;
+      _listenScore = 0;
+      _listenStreak = 0;
+      _usedEntryIds.clear();
+      _isListenSessionCompleted = false;
+      _currentMode = GameMode.selection;
+    });
   }
 
   Future<void> _startMatchRound() async {
@@ -235,6 +391,7 @@ class _GamePageState extends State<GamePage> {
       _leftCards = leftList;
       _rightCards = rightList;
       _matchedIds.clear();
+      _matchedPairs.clear();
       _selectedLeftId = null;
       _selectedRightId = null;
       _wrongLeftId = null;
@@ -271,6 +428,7 @@ class _GamePageState extends State<GamePage> {
     required bool isSelected,
     required bool isMatched,
     required bool isWrong,
+    required Color backgroundColor,
   }) {
     if (isMatched) {
       return AppPalette.mossGreen;
@@ -281,7 +439,7 @@ class _GamePageState extends State<GamePage> {
     if (isSelected) {
       return AppPalette.amber;
     }
-    return AppPalette.parchment;
+    return backgroundColor;
   }
 
   Widget _buildMatchCard({
@@ -291,33 +449,84 @@ class _GamePageState extends State<GamePage> {
     required bool isMatched,
     required bool isWrong,
     required Alignment alignment,
+    required Color backgroundColor,
+    String? audioHintEntryId,
+    VoidCallback? onAudioHintTapped,
   }) {
+    final Color cardColor = _matchCardColor(
+      isSelected: isSelected,
+      isMatched: isMatched,
+      isWrong: isWrong,
+      backgroundColor: backgroundColor,
+    );
+
+    final Widget cardContent;
+    if (audioHintEntryId != null &&
+        _availableAudioIds.contains(audioHintEntryId) &&
+        onAudioHintTapped != null) {
+      cardContent = InkWell(
+        onTap: isMatched ? null : onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Expanded(
+                child: Text(
+                  text,
+                  softWrap: true,
+                  style: const TextStyle(
+                    fontFamily: 'Open Sans',
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              InkWell(
+                onTap: isMatched ? null : onAudioHintTapped,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: AppPalette.amber,
+                    shape: BoxShape.circle,
+                  ),
+                  padding: const EdgeInsets.all(4),
+                  child: const Icon(
+                    Icons.hearing,
+                    size: 16,
+                    color: AppPalette.parchment,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    } else {
+      cardContent = InkWell(
+        onTap: isMatched ? null : onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          child: Text(
+            text,
+            softWrap: true,
+            style: const TextStyle(
+              fontFamily: 'Open Sans',
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      );
+    }
+
     return Align(
       alignment: alignment,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 330),
         child: Material(
-          color: _matchCardColor(
-            isSelected: isSelected,
-            isMatched: isMatched,
-            isWrong: isWrong,
-          ),
+          color: cardColor,
           borderRadius: BorderRadius.circular(10),
-          child: InkWell(
-            onTap: isMatched ? null : onTap,
-            borderRadius: BorderRadius.circular(10),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              child: Text(
-                text,
-                softWrap: true,
-                style: const TextStyle(
-                  fontFamily: 'Open Sans',
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ),
+          child: cardContent,
         ),
       ),
     );
@@ -327,6 +536,7 @@ class _GamePageState extends State<GamePage> {
   void dispose() {
     _audioPlayer.dispose();
     _matchTimer?.cancel();
+    _showAssociationTimer?.cancel();
     super.dispose();
   }
 
@@ -397,7 +607,7 @@ class _GamePageState extends State<GamePage> {
                     setState(() {
                       _currentMode = GameMode.listen;
                     });
-                    _startListenRound();
+                    _startListenSession();
                   },
                   child: Text(
                     l10n.listenAndGuess,
@@ -461,8 +671,9 @@ class _GamePageState extends State<GamePage> {
             ? IconButton(
                 icon: const Icon(Icons.chevron_left),
                 onPressed: () {
-                  if (_currentMode == GameMode.listen && _isListenRoundActive) {
+                  if (_currentMode == GameMode.listen && _listenEntry != null) {
                     _audioPlayer.stop();
+                    _showAssociationTimer?.cancel();
                   }
                   if (_currentMode == GameMode.match && _matchTimer != null) {
                     _matchTimer!.cancel();
@@ -476,6 +687,160 @@ class _GamePageState extends State<GamePage> {
       ),
       body: Column(children: children),
     );
+  }
+
+  Future<void> _startListenSession() async {
+    if (_validEntries.isEmpty) {
+      return;
+    }
+
+    await _learningRepository.startSession();
+    _listenRoundNumber = 0;
+    _listenScore = 0;
+    _listenStreak = 0;
+    _listenBestStreak = 0;
+    _usedEntryIds.clear();
+    _isListenSessionCompleted = false;
+
+    if (!mounted) return;
+    setState(() {
+      _currentMode = GameMode.listen;
+    });
+
+    await _startListenRound();
+  }
+
+  Future<void> _handleListenCorrect() async {
+    final entryId = _listenEntry!['lemma_id'].toString();
+
+    await _learningRepository.registerRoundResult(
+      lemmaId: entryId,
+      firstAttemptCorrect: !_currentRoundHadWrongAttempt,
+    );
+
+    if (!mounted) return;
+
+    final l10n = AppLocalizations.of(context);
+
+    if (_listenStreak > _listenBestStreak) {
+      _listenBestStreak = _listenStreak;
+    }
+
+    setState(() {
+      _listenScore++;
+    });
+
+    final association = _listenEntry!['meaning_text'].toString();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              l10n.correct,
+              style: const TextStyle(
+                fontWeight: FontWeight.w700,
+                fontFamily: 'Open Sans',
+              ),
+            ),
+            Text(
+              association,
+              style: const TextStyle(
+                fontStyle: FontStyle.italic,
+                fontFamily: 'Open Sans',
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: AppPalette.mossGreen,
+        duration: const Duration(milliseconds: 1500),
+      ),
+    );
+
+    _showAssociationTimer?.cancel();
+    _showAssociationTimer = Timer(const Duration(milliseconds: 1500), () {
+      if (!mounted) return;
+      _listenRoundNumber++;
+      if (_listenRoundNumber >= _totalListenRounds) {
+        _isListenSessionCompleted = true;
+        _completeListenSession();
+      } else {
+        _startListenRound();
+      }
+    });
+  }
+
+  Future<void> _handleListenWrong() async {
+    final entryId = _listenEntry!['lemma_id'].toString();
+
+    await _learningRepository.registerRoundResult(
+      lemmaId: entryId,
+      firstAttemptCorrect: false,
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _currentRoundHadWrongAttempt = true;
+      _listenStreak = 0;
+    });
+
+    final l10n = AppLocalizations.of(context);
+    final chosenEntry = _listenChoices.firstWhere(
+      (c) => c['lemma_id'].toString() == _selectedListenId,
+    );
+    final chosenName = chosenEntry['lemma'].toString();
+
+    await _playEntryAudio(_listenEntry!);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '${l10n.wrongTryAgain} ${l10n.listenAndGuess}',
+              style: const TextStyle(
+                fontWeight: FontWeight.w700,
+                fontFamily: 'Open Sans',
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${l10n.listenAndGuess}: $chosenName',
+              style: const TextStyle(fontFamily: 'Open Sans'),
+            ),
+          ],
+        ),
+        backgroundColor: AppPalette.brickRed,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+
+    final random = Random();
+    final choices = <Map<String, dynamic>>[_listenEntry!];
+
+    final distractors =
+        _validEntries
+            .where(
+              (entry) =>
+                  entry['lemma_id'].toString() !=
+                  _listenEntry!['lemma_id'].toString(),
+            )
+            .toList()
+          ..shuffle(random);
+
+    choices.addAll(distractors.take(3));
+    choices.shuffle(random);
+
+    if (!mounted) return;
+    setState(() {
+      _listenChoices = choices;
+      _selectedListenId = null;
+      _listenAnswerIsCorrect = null;
+    });
   }
 
   Widget _buildListenMode() {
@@ -493,17 +858,34 @@ class _GamePageState extends State<GamePage> {
       );
     }
 
+    final progress = _listenRoundNumber / _totalListenRounds;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
-          Text(
-            l10n.listenInstruction,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              fontFamily: 'Open Sans',
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                '${l10n.listenAndGuess}: ${_listenRoundNumber + 1} / $_totalListenRounds',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  fontFamily: 'Open Sans',
+                  color: AppPalette.parchment,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: progress,
+              backgroundColor: AppPalette.mutedBrown,
+              valueColor: AlwaysStoppedAnimation<Color>(_listenProgressColor()),
+              minHeight: 12,
             ),
           ),
           const SizedBox(height: 24),
@@ -570,23 +952,10 @@ class _GamePageState extends State<GamePage> {
                           _listenAnswerIsCorrect = selectedId == correctId;
                         });
                         if (_listenAnswerIsCorrect == true) {
-                          _listenScore++;
-                          if (_listenScore > _listenBestScore) {
-                            _saveListenBestScore(_listenScore);
-                          }
-                          Future.delayed(const Duration(seconds: 1), () {
-                            if (!mounted) return;
-                            _startListenRound();
-                          });
+                          _listenStreak++;
+                          _handleListenCorrect();
                         } else {
-                          if (!mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(l10n.wrongTryAgain),
-                              backgroundColor: AppPalette.brickRed,
-                            ),
-                          );
-                          _playEntryAudio(_listenEntry!);
+                          _handleListenWrong();
                         }
                       },
                 child: Text(
@@ -628,7 +997,7 @@ class _GamePageState extends State<GamePage> {
               Column(
                 children: [
                   Text(
-                    l10n.bestScore,
+                    l10n.listenAndGuess,
                     style: const TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
@@ -637,7 +1006,7 @@ class _GamePageState extends State<GamePage> {
                     ),
                   ),
                   Text(
-                    '$_listenBestScore',
+                    '$_listenStreak',
                     style: const TextStyle(
                       fontWeight: FontWeight.w700,
                       fontSize: 24,
@@ -647,6 +1016,29 @@ class _GamePageState extends State<GamePage> {
                   ),
                 ],
               ),
+              if (_listenBestStreak > 0)
+                Column(
+                  children: [
+                    Text(
+                      l10n.listenAndGuess,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        fontFamily: 'Open Sans',
+                        color: AppPalette.parchment,
+                      ),
+                    ),
+                    Text(
+                      '$_listenBestStreak',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 24,
+                        fontFamily: 'Open Sans',
+                        color: AppPalette.parchment,
+                      ),
+                    ),
+                  ],
+                ),
             ],
           ),
         ],
@@ -738,80 +1130,174 @@ class _GamePageState extends State<GamePage> {
               ],
             ),
           ),
-          const SizedBox(height: 24),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
+          const SizedBox(height: 16),
+          for (final pair in _matchedPairs)
+            AnimatedSlide(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOut,
+              offset: const Offset(0, -0.1),
+              child: Padding(
                 padding: const EdgeInsets.only(bottom: 8),
-                child: Text(
-                  l10n.karelianColumn,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontFamily: 'Open Sans',
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: AppPalette.karelianPanel,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: AppPalette.parchment.withAlpha(64),
+                      width: 1,
+                    ),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '${pair.lemma}',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontFamily: 'Open Sans',
+                          color: AppPalette.ink,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        size: 14,
+                        color: AppPalette.ink,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${pair.meaning}',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontFamily: 'Open Sans',
+                          color: AppPalette.ink,
+                          backgroundColor: AppPalette.translationPanel,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-              for (int i = 0; i < _leftCards.length; i++)
-                if (!_matchedIds.contains(_leftCards[i]['lemma_id'].toString()))
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: _buildMatchCard(
-                      text: _leftCards[i]['lemma'].toString(),
-                      onTap: () {
-                        _selectLeftCard(_leftCards[i]);
-                      },
-                      isSelected:
-                          _selectedLeftId ==
-                          _leftCards[i]['lemma_id'].toString(),
-                      isMatched: _matchedIds.contains(
-                        _leftCards[i]['lemma_id'].toString(),
-                      ),
-                      isWrong:
-                          _wrongLeftId == _leftCards[i]['lemma_id'].toString(),
-                      alignment: Alignment.centerLeft,
+            ),
+          AnimatedSlide(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+            offset: _matchedPairs.isEmpty
+                ? const Offset(0, 0)
+                : const Offset(0, -0.1),
+            child: Opacity(
+              opacity: _matchedPairs.isEmpty ? 1.0 : 0.0,
+              child: Column(
+                children: [
+                  const SizedBox(height: 24),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppPalette.karelianPanel,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          l10n.karelianColumn,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontFamily: 'Open Sans',
+                            color: AppPalette.ink,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-            ],
+                  const SizedBox(height: 8),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      for (int i = 0; i < _leftCards.length; i++)
+                        if (!_matchedIds.contains(
+                          _leftCards[i]['lemma_id'].toString(),
+                        ))
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: _buildMatchCard(
+                              text: _leftCards[i]['lemma'].toString(),
+                              onTap: () {
+                                _selectLeftCard(_leftCards[i]);
+                              },
+                              isSelected:
+                                  _selectedLeftId ==
+                                  _leftCards[i]['lemma_id'].toString(),
+                              isMatched: _matchedIds.contains(
+                                _leftCards[i]['lemma_id'].toString(),
+                              ),
+                              isWrong:
+                                  _wrongLeftId ==
+                                  _leftCards[i]['lemma_id'].toString(),
+                              alignment: Alignment.centerLeft,
+                              backgroundColor: AppPalette.karelianPanel,
+                            ),
+                          ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           ),
           const SizedBox(height: 24),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Text(
-                  l10n.translationColumn,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontFamily: 'Open Sans',
-                  ),
-                ),
-              ),
-              for (int i = 0; i < _rightCards.length; i++)
-                if (!_matchedIds.contains(
-                  _rightCards[i]['lemma_id'].toString(),
-                ))
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: _buildMatchCard(
-                      text: _rightCards[i]['meaning_text'].toString(),
-                      onTap: () {
-                        _selectRightCard(_rightCards[i]);
-                      },
-                      isSelected:
-                          _selectedRightId ==
-                          _rightCards[i]['lemma_id'].toString(),
-                      isMatched: _matchedIds.contains(
-                        _rightCards[i]['lemma_id'].toString(),
-                      ),
-                      isWrong:
-                          _wrongRightId ==
-                          _rightCards[i]['lemma_id'].toString(),
-                      alignment: Alignment.centerRight,
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppPalette.translationPanel,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text(
+                    l10n.translationColumn,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontFamily: 'Open Sans',
+                      color: AppPalette.ink,
                     ),
                   ),
-            ],
+                ),
+                for (int i = 0; i < _rightCards.length; i++)
+                  if (!_matchedIds.contains(
+                    _rightCards[i]['lemma_id'].toString(),
+                  ))
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: _buildMatchCard(
+                        text: _rightCards[i]['meaning_text'].toString(),
+                        onTap: () {
+                          _selectRightCard(_rightCards[i]);
+                        },
+                        isSelected:
+                            _selectedRightId ==
+                            _rightCards[i]['lemma_id'].toString(),
+                        isMatched: _matchedIds.contains(
+                          _rightCards[i]['lemma_id'].toString(),
+                        ),
+                        isWrong:
+                            _wrongRightId ==
+                            _rightCards[i]['lemma_id'].toString(),
+                        alignment: Alignment.centerRight,
+                        backgroundColor: AppPalette.translationPanel,
+                        audioHintEntryId: _rightCards[i]['lemma_id'].toString(),
+                        onAudioHintTapped: () =>
+                            _handleAudioHintTapped(_rightCards[i]),
+                      ),
+                    ),
+              ],
+            ),
           ),
         ],
       ),
@@ -865,8 +1351,22 @@ class _GamePageState extends State<GamePage> {
     }
 
     if (leftId == rightId) {
+      final leftEntry = _leftCards.firstWhere(
+        (c) => c['lemma_id'].toString() == leftId,
+      );
+      final rightEntry = _rightCards.firstWhere(
+        (c) => c['lemma_id'].toString() == rightId,
+      );
+
       setState(() {
         _matchedIds.add(leftId);
+        _matchedPairs.add(
+          MatchedPair(
+            id: leftId,
+            lemma: leftEntry['lemma'].toString(),
+            meaning: rightEntry['meaning_text'].toString(),
+          ),
+        );
         _selectedLeftId = null;
         _selectedRightId = null;
         _isCheckingMatch = false;
@@ -896,6 +1396,13 @@ class _GamePageState extends State<GamePage> {
       _selectedLeftId = null;
       _selectedRightId = null;
     });
+  }
+
+  void _handleAudioHintTapped(Map<String, dynamic> entry) {
+    final lemmaId = entry['lemma_id'].toString();
+    if (_availableAudioIds.contains(lemmaId)) {
+      _playAudioHint(lemmaId);
+    }
   }
 
   Future<void> _completeMatchRound() async {

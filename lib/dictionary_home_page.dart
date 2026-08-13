@@ -6,6 +6,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'app_theme.dart';
 import 'dictionary_repository.dart';
 import 'game_page.dart';
+import 'learning_statistics_page.dart';
 import 'l10n/app_localizations.dart';
 import 'locale_controller.dart';
 import 'search_utils.dart';
@@ -116,8 +117,18 @@ class _DetailPageState extends State<DetailPage> {
         width: 80,
         height: 80,
         child: FloatingActionButton(
-          onPressed: () {
-            _playAudio(widget.audioPath);
+          onPressed: () async {
+            try {
+              await _playAudio(widget.audioPath);
+            } catch (e) {
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('${l10n.audioPlaybackError}: $e'),
+                  backgroundColor: AppPalette.brickRed,
+                ),
+              );
+            }
           },
           backgroundColor: AppPalette.mutedBrown,
           child: const Icon(Icons.play_arrow_rounded, size: 40),
@@ -158,11 +169,6 @@ class _MyAppState extends State<MyApp> {
     super.initState();
     _entriesFuture = _repository.loadEntries();
     _loadSearchHistory();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
   }
 
   @override
@@ -273,30 +279,54 @@ class _MyAppState extends State<MyApp> {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        title: TextField(
-          focusNode: _searchFocusNode,
-          controller: _searchController,
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontFamily: 'Open Sans',
+        title: Container(
+          height: 42,
+          decoration: BoxDecoration(
+            color: AppPalette.parchment,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppPalette.amber, width: 1.2),
           ),
-          decoration: InputDecoration(
-            hintText: l10n.searchHint,
-            prefixIcon: const Icon(Icons.search),
-            suffixIcon: _searchController.text.isEmpty
-                ? null
-                : IconButton(
-                    icon: const Icon(Icons.clear),
-                    tooltip: l10n.clearSearch,
-                    onPressed: _clearSearch,
-                  ),
-            border: InputBorder.none,
+          child: TextField(
+            controller: _searchController,
+            focusNode: _searchFocusNode,
+            style: const TextStyle(
+              color: AppPalette.ink,
+              fontFamily: 'Open Sans',
+              fontWeight: FontWeight.w600,
+            ),
+            cursorColor: AppPalette.mutedBrown,
+            decoration: InputDecoration(
+              hintText: l10n.searchHint,
+              hintStyle: const TextStyle(
+                color: AppPalette.mutedBrown,
+                fontFamily: 'Open Sans',
+              ),
+              prefixIcon: const Icon(
+                Icons.search,
+                color: AppPalette.mutedBrown,
+              ),
+              suffixIcon: _searchController.text.isEmpty
+                  ? null
+                  : IconButton(
+                      icon: const Icon(
+                        Icons.clear,
+                        color: AppPalette.mutedBrown,
+                      ),
+                      tooltip: l10n.clearSearch,
+                      onPressed: _clearSearch,
+                    ),
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 10,
+              ),
+            ),
+            onTap: _showSearchHistory,
+            onChanged: (text) {
+              _applySearch(text, hideHistory: true);
+            },
+            onSubmitted: _saveSearchQuery,
           ),
-          onTap: _showSearchHistory,
-          onChanged: (text) {
-            _applySearch(text, hideHistory: true);
-          },
-          onSubmitted: _saveSearchQuery,
         ),
       ),
       body: Column(
@@ -325,9 +355,11 @@ class _MyAppState extends State<MyApp> {
                       return const Center(child: CircularProgressIndicator());
                     }
 
-                    if (_allEntries.isEmpty) {
-                      _allEntries = List<dynamic>.from(snapshot.data!);
-                      _filteredData = List<dynamic>.from(_allEntries);
+                    if (_allEntries.isEmpty && _filteredData.isEmpty) {
+                      setState(() {
+                        _allEntries = List<dynamic>.from(snapshot.data!);
+                        _filteredData = List<dynamic>.from(_allEntries);
+                      });
                     }
 
                     if (_value.isNotEmpty && _filteredData.isEmpty) {
@@ -446,13 +478,13 @@ class _MyAppState extends State<MyApp> {
               height: 140,
               padding: const EdgeInsets.only(left: 16, bottom: 12),
               alignment: Alignment.bottomLeft,
-              decoration: const BoxDecoration(color: Colors.red),
+              decoration: const BoxDecoration(color: AppPalette.archiveSurface),
               child: Text(
                 l10n.menuTitle,
                 style: const TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 18,
-                  color: Colors.white,
+                  color: AppPalette.parchment,
                   fontFamily: 'Open Sans',
                 ),
               ),
@@ -508,6 +540,18 @@ class _MyAppState extends State<MyApp> {
                 Navigator.of(context).pop();
                 Navigator.of(context).push(
                   MaterialPageRoute<void>(builder: (context) => AboutPage()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.insights),
+              title: Text(l10n.learningStatistics),
+              onTap: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (context) => const LearningStatisticsPage(),
+                  ),
                 );
               },
             ),

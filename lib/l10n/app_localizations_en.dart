@@ -140,5 +140,78 @@ class AppLocalizationsEn extends AppLocalizations {
   String get karelianColumn => 'Karelian';
 
   @override
-  String get translationColumn => 'Translation';
+  String get translationColumn => 'Russian';
+
+  @override
+  String get learningStatistics => 'Statistics';
+
+  @override
+  String get statisticsLoadError => 'Failed to load statistics';
+
+  @override
+  String get myWordArchive => 'My Word Archive';
+
+  @override
+  String get wordsEncountered => 'Words encountered';
+
+  @override
+  String get wordsLearned => 'Words learned';
+
+  @override
+  String get confidentWords => 'Confident words';
+
+  @override
+  String get needsReview => 'Needs review';
+
+  @override
+  String get currentSession => 'Current session';
+
+  @override
+  String get previousSession => 'Previous session';
+
+  @override
+  String get restoredCards => 'Restored cards';
+
+  @override
+  String get firstAttemptCorrect => 'First-attempt correct';
+
+  @override
+  String get newlyLearned => 'Newly learned';
+
+  @override
+  String get noLearningDataYet => 'No learning data yet. Start playing!';
+
+  @override
+  String roundOf(Object round, Object total) {
+    return 'Round $round of $total';
+  }
+
+  @override
+  String get streak => 'Streak';
+
+  @override
+  String get hint => 'Hint';
+
+  @override
+  String hintCharacters(Object count) {
+    return '$count characters';
+  }
+
+  @override
+  String hintStartsWith(Object letter) {
+    return 'starts with \'$letter\'';
+  }
+
+  @override
+  String hintPattern(Object pattern) {
+    return '$pattern';
+  }
+
+  @override
+  String wrongChoiceMeaning(Object lemma, Object meaning) {
+    return 'Wrong: $lemma means $meaning';
+  }
+
+  @override
+  String get sessionCompleted => 'Session Completed';
 }

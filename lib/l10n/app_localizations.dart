@@ -359,8 +359,134 @@ abstract class AppLocalizations {
   /// No description provided for @translationColumn.
   ///
   /// In en, this message translates to:
-  /// **'Translation'**
+  /// **'Russian'**
   String get translationColumn;
+
+  /// No description provided for @learningStatistics.
+  ///
+  /// In en, this message translates to:
+  /// **'Statistics'**
+  String get learningStatistics;
+
+  /// No description provided for @statisticsLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load statistics'**
+  String get statisticsLoadError;
+
+  /// No description provided for @myWordArchive.
+  ///
+  /// In en, this message translates to:
+  /// **'My Word Archive'**
+  String get myWordArchive;
+
+  /// No description provided for @wordsEncountered.
+  ///
+  /// In en, this message translates to:
+  /// **'Words encountered'**
+  String get wordsEncountered;
+
+  /// No description provided for @wordsLearned.
+  ///
+  /// In en, this message translates to:
+  /// **'Words learned'**
+  String get wordsLearned;
+
+  /// No description provided for @confidentWords.
+  ///
+  /// In en, this message translates to:
+  /// **'Confident words'**
+  String get confidentWords;
+
+  /// No description provided for @needsReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs review'**
+  String get needsReview;
+
+  /// No description provided for @currentSession.
+  ///
+  /// In en, this message translates to:
+  /// **'Current session'**
+  String get currentSession;
+
+  /// No description provided for @previousSession.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous session'**
+  String get previousSession;
+
+  /// No description provided for @restoredCards.
+  ///
+  /// In en, this message translates to:
+  /// **'Restored cards'**
+  String get restoredCards;
+
+  /// No description provided for @firstAttemptCorrect.
+  ///
+  /// In en, this message translates to:
+  /// **'First-attempt correct'**
+  String get firstAttemptCorrect;
+
+  /// No description provided for @newlyLearned.
+  ///
+  /// In en, this message translates to:
+  /// **'Newly learned'**
+  String get newlyLearned;
+
+  /// No description provided for @noLearningDataYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No learning data yet. Start playing!'**
+  String get noLearningDataYet;
+
+  /// No description provided for @roundOf.
+  ///
+  /// In en, this message translates to:
+  /// **'Round {round} of {total}'**
+  String roundOf(Object round, Object total);
+
+  /// No description provided for @streak.
+  ///
+  /// In en, this message translates to:
+  /// **'Streak'**
+  String get streak;
+
+  /// No description provided for @hint.
+  ///
+  /// In en, this message translates to:
+  /// **'Hint'**
+  String get hint;
+
+  /// No description provided for @hintCharacters.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} characters'**
+  String hintCharacters(Object count);
+
+  /// No description provided for @hintStartsWith.
+  ///
+  /// In en, this message translates to:
+  /// **'starts with \'{letter}\''**
+  String hintStartsWith(Object letter);
+
+  /// No description provided for @hintPattern.
+  ///
+  /// In en, this message translates to:
+  /// **'{pattern}'**
+  String hintPattern(Object pattern);
+
+  /// No description provided for @wrongChoiceMeaning.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrong: {lemma} means {meaning}'**
+  String wrongChoiceMeaning(Object lemma, Object meaning);
+
+  /// No description provided for @sessionCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Session Completed'**
+  String get sessionCompleted;
 }
 
 class _AppLocalizationsDelegate

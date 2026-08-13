@@ -141,4 +141,77 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get translationColumn => 'Перевод';
+
+  @override
+  String get learningStatistics => 'Статистика';
+
+  @override
+  String get statisticsLoadError => 'Не удалось загрузить статистику';
+
+  @override
+  String get myWordArchive => 'Мой архив слов';
+
+  @override
+  String get wordsEncountered => 'Открыто слов';
+
+  @override
+  String get wordsLearned => 'Выучено';
+
+  @override
+  String get confidentWords => 'Уверенно знаю';
+
+  @override
+  String get needsReview => 'Нужно повторить';
+
+  @override
+  String get currentSession => 'Текущая смена';
+
+  @override
+  String get previousSession => 'Предыдущая смена';
+
+  @override
+  String get restoredCards => 'Восстановлено';
+
+  @override
+  String get firstAttemptCorrect => 'С первого раза';
+
+  @override
+  String get newlyLearned => 'Новых выученных';
+
+  @override
+  String get noLearningDataYet => 'Нет данных по обучению. Начните играть!';
+
+  @override
+  String roundOf(Object round, Object total) {
+    return 'Раунд $round из $total';
+  }
+
+  @override
+  String get streak => 'Серия';
+
+  @override
+  String get hint => 'Подсказка';
+
+  @override
+  String hintCharacters(Object count) {
+    return '$count букв';
+  }
+
+  @override
+  String hintStartsWith(Object letter) {
+    return 'начинается на \'$letter\'';
+  }
+
+  @override
+  String hintPattern(Object pattern) {
+    return '$pattern';
+  }
+
+  @override
+  String wrongChoiceMeaning(Object lemma, Object meaning) {
+    return 'Ошибка: $lemma означает $meaning';
+  }
+
+  @override
+  String get sessionCompleted => 'Смена завершена';
 }

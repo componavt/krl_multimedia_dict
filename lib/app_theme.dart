@@ -9,6 +9,8 @@ class AppPalette {
   static const Color mossGreen = Color(0xFF4E7D4A);
   static const Color brickRed = Color(0xFFA63D32);
   static const Color mutedBrown = Color(0xFF6C5140);
+  static const Color karelianPanel = Color(0xFFF3E3B2);
+  static const Color translationPanel = Color(0xFFE8D3A0);
 }
 
 ThemeData buildAppTheme() {
