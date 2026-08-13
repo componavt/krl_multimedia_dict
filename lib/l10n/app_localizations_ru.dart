@@ -182,8 +182,8 @@ class AppLocalizationsRu extends AppLocalizations {
   String get noLearningDataYet => 'Нет данных по обучению. Начните играть!';
 
   @override
-  String roundOf(Object round, Object total) {
-    return 'Раунд $round из $total';
+  String roundOf(Object current, Object total) {
+    return 'Раунд $current из $total';
   }
 
   @override
@@ -209,9 +209,18 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String wrongChoiceMeaning(Object lemma, Object meaning) {
-    return 'Ошибка: $lemma означает $meaning';
+    return '$lemma — $meaning';
   }
 
   @override
   String get sessionCompleted => 'Смена завершена';
+
+  @override
+  String get restoreArchiveCard => 'Восстановите архивную карточку';
+
+  @override
+  String get bestStreak => 'Лучшая серия';
+
+  @override
+  String get cardsNeedReview => 'Карточки нуждаются в повторении';
 }

@@ -443,8 +443,8 @@ abstract class AppLocalizations {
   /// No description provided for @roundOf.
   ///
   /// In en, this message translates to:
-  /// **'Round {round} of {total}'**
-  String roundOf(Object round, Object total);
+  /// **'Round {current} of {total}'**
+  String roundOf(Object current, Object total);
 
   /// No description provided for @streak.
   ///
@@ -479,7 +479,7 @@ abstract class AppLocalizations {
   /// No description provided for @wrongChoiceMeaning.
   ///
   /// In en, this message translates to:
-  /// **'Wrong: {lemma} means {meaning}'**
+  /// **'{lemma} — {meaning}'**
   String wrongChoiceMeaning(Object lemma, Object meaning);
 
   /// No description provided for @sessionCompleted.
@@ -487,6 +487,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Session Completed'**
   String get sessionCompleted;
+
+  /// No description provided for @restoreArchiveCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore the archive card'**
+  String get restoreArchiveCard;
+
+  /// No description provided for @bestStreak.
+  ///
+  /// In en, this message translates to:
+  /// **'Best streak'**
+  String get bestStreak;
+
+  /// No description provided for @cardsNeedReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Cards needing review'**
+  String get cardsNeedReview;
 }
 
 class _AppLocalizationsDelegate

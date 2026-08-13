@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter/services.dart' show AssetManifest, rootBundle;
 import 'package:audioplayers/audioplayers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -11,6 +11,7 @@ import 'dictionary_repository.dart';
 import 'l10n/app_localizations.dart';
 import 'locale_controller.dart';
 import 'word_learning_repository.dart';
+import 'word_learning_record.dart';
 
 enum GameMode { selection, listen, match }
 
@@ -59,6 +60,7 @@ class _GamePageState extends State<GamePage>
   Timer? _showAssociationTimer;
 
   final Set<String> _availableAudioIds = <String>{};
+  String? _audioHintLemmaId;
 
   Map<String, dynamic>? _listenEntry;
   List<Map<String, dynamic>> _listenChoices = <Map<String, dynamic>>[];
@@ -131,22 +133,28 @@ class _GamePageState extends State<GamePage>
   }
 
   Future<void> _preloadAudioAssets() async {
-    final validEntries = _validEntries;
-    final audioIds = <String>[];
-    for (final entry in validEntries) {
+    final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
+    final assets = manifest.listAssets();
+
+    final audioIds = <String>{};
+
+    for (final entry in _validEntries) {
       final lemmaId = entry['lemma_id'].toString();
-      try {
-        await rootBundle.load('audio/$lemmaId.wav');
+      final assetPath = 'audio/$lemmaId.wav';
+
+      if (assets.contains(assetPath)) {
         audioIds.add(lemmaId);
-      } catch (e) {
-        // Asset doesn't exist, skip it
       }
     }
+
     if (!mounted) return;
+
     setState(() {
+      _availableAudioIds.clear();
       _availableAudioIds.addAll(audioIds);
     });
-    await _learningRepository.setAudioEnabledWordIds(audioIds.toSet());
+
+    await _learningRepository.setAudioEnabledWordIds(audioIds);
   }
 
   Future<void> _playAudioHint(String lemmaId) async {
@@ -228,7 +236,13 @@ class _GamePageState extends State<GamePage>
 
     final l10n = AppLocalizations.of(context);
     final validEntries = _validEntries;
-    if (validEntries.length < 4) {
+
+    final audioEnabledEntries = validEntries.where((entry) {
+      final id = entry['lemma_id'].toString();
+      return _availableAudioIds.contains(id);
+    }).toList();
+
+    if (audioEnabledEntries.length < 4) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -240,7 +254,7 @@ class _GamePageState extends State<GamePage>
     }
 
     final random = Random();
-    final availableEntries = validEntries.where((entry) {
+    final availableEntries = audioEnabledEntries.where((entry) {
       final id = entry['lemma_id'].toString();
       return !_usedEntryIds.contains(id);
     }).toList();
@@ -253,7 +267,7 @@ class _GamePageState extends State<GamePage>
     final choices = <Map<String, dynamic>>[correct];
 
     final distractors =
-        validEntries
+        audioEnabledEntries
             .where(
               (entry) =>
                   entry['lemma_id'].toString() !=
@@ -356,6 +370,8 @@ class _GamePageState extends State<GamePage>
   }
 
   Future<void> _startMatchRound() async {
+    _audioHintLemmaId = null;
+
     final l10n = AppLocalizations.of(context);
     final validEntries = _validEntries;
     if (validEntries.length < 5) {
@@ -370,12 +386,59 @@ class _GamePageState extends State<GamePage>
     }
 
     final random = Random();
+
+    final learningRecords = await _learningRepository.getAllRecords();
+
+    final eligibleFamiliar = <Map<String, dynamic>>[];
+    final eligibleReview = <Map<String, dynamic>>[];
+
+    for (final entry in validEntries) {
+      final lemmaId = entry['lemma_id'].toString();
+      if (!_availableAudioIds.contains(lemmaId)) {
+        continue;
+      }
+      final record = learningRecords[lemmaId];
+      if (record != null && record.correctCount > 0) {
+        if (record.mastery == WordMastery.learned ||
+            record.mastery == WordMastery.confident) {
+          eligibleFamiliar.add(entry);
+        } else {
+          eligibleReview.add(entry);
+        }
+      }
+    }
+
+    List<Map<String, dynamic>>? candidateList;
+    bool hasFamiliar = eligibleFamiliar.isNotEmpty;
+    bool hasReview = eligibleReview.isNotEmpty;
+
+    if (hasFamiliar && hasReview) {
+      candidateList = random.nextDouble() < 0.7
+          ? eligibleFamiliar
+          : eligibleReview;
+    } else if (hasFamiliar) {
+      candidateList = eligibleFamiliar;
+    } else if (hasReview) {
+      candidateList = eligibleReview;
+    } else {
+      candidateList = null;
+    }
+
     final selectedEntries = <Map<String, dynamic>>[];
+    String? hintEntryId;
+
+    if (candidateList != null && candidateList.isNotEmpty) {
+      final hintEntry = candidateList[random.nextInt(candidateList.length)];
+      hintEntryId = hintEntry['lemma_id'].toString();
+      selectedEntries.add(hintEntry);
+    }
+
     while (selectedEntries.length < 5 && validEntries.isNotEmpty) {
       final entry = validEntries[random.nextInt(validEntries.length)];
       if (!selectedEntries.any(
-        (e) => e['lemma_id'].toString() == entry['lemma_id'].toString(),
-      )) {
+            (e) => e['lemma_id'].toString() == entry['lemma_id'].toString(),
+          ) &&
+          entry['lemma_id'].toString() != hintEntryId) {
         selectedEntries.add(entry);
       }
     }
@@ -386,6 +449,7 @@ class _GamePageState extends State<GamePage>
       ..shuffle(random);
 
     if (!mounted) return;
+
     setState(() {
       _matchEntries = selectedEntries;
       _leftCards = leftList;
@@ -399,6 +463,10 @@ class _GamePageState extends State<GamePage>
       _isCheckingMatch = false;
       _isMatchCompleted = false;
     });
+
+    if (hintEntryId != null) {
+      _audioHintLemmaId = hintEntryId;
+    }
 
     if (_matchTimer != null) {
       _matchTimer!.cancel();
@@ -460,28 +528,31 @@ class _GamePageState extends State<GamePage>
       backgroundColor: backgroundColor,
     );
 
-    final Widget cardContent;
-    if (audioHintEntryId != null &&
-        _availableAudioIds.contains(audioHintEntryId) &&
-        onAudioHintTapped != null) {
-      cardContent = InkWell(
-        onTap: isMatched ? null : onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Expanded(
-                child: Text(
-                  text,
-                  softWrap: true,
-                  style: const TextStyle(
-                    fontFamily: 'Open Sans',
-                    fontWeight: FontWeight.w600,
-                  ),
+    final cardContent = InkWell(
+      onTap: isMatched ? null : onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Expanded(
+              child: Text(
+                text,
+                softWrap: true,
+                style: const TextStyle(
+                  fontFamily: 'Open Sans',
+                  fontWeight: FontWeight.w600,
                 ),
               ),
+            ),
+            if (audioHintEntryId != null &&
+                audioHintEntryId == _audioHintLemmaId &&
+                onAudioHintTapped != null)
               const SizedBox(width: 8),
+            if (audioHintEntryId != null &&
+                audioHintEntryId == _audioHintLemmaId &&
+                onAudioHintTapped != null)
               InkWell(
                 onTap: isMatched ? null : onAudioHintTapped,
                 child: Container(
@@ -497,27 +568,10 @@ class _GamePageState extends State<GamePage>
                   ),
                 ),
               ),
-            ],
-          ),
+          ],
         ),
-      );
-    } else {
-      cardContent = InkWell(
-        onTap: isMatched ? null : onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          child: Text(
-            text,
-            softWrap: true,
-            style: const TextStyle(
-              fontFamily: 'Open Sans',
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-      );
-    }
+      ),
+    );
 
     return Align(
       alignment: alignment,
@@ -774,23 +828,11 @@ class _GamePageState extends State<GamePage>
 
   Future<void> _handleListenWrong() async {
     final entryId = _listenEntry!['lemma_id'].toString();
-
-    await _learningRepository.registerRoundResult(
-      lemmaId: entryId,
-      firstAttemptCorrect: false,
-    );
-
-    if (!mounted) return;
-    setState(() {
-      _currentRoundHadWrongAttempt = true;
-      _listenStreak = 0;
-    });
-
     final l10n = AppLocalizations.of(context);
     final chosenEntry = _listenChoices.firstWhere(
       (c) => c['lemma_id'].toString() == _selectedListenId,
     );
-    final chosenName = chosenEntry['lemma'].toString();
+    final chosenMeaning = chosenEntry['meaning_text'].toString();
 
     await _playEntryAudio(_listenEntry!);
 
@@ -809,7 +851,7 @@ class _GamePageState extends State<GamePage>
             ),
             const SizedBox(height: 4),
             Text(
-              '${l10n.listenAndGuess}: $chosenName',
+              '${l10n.listenAndGuess}: $chosenMeaning',
               style: const TextStyle(fontFamily: 'Open Sans'),
             ),
           ],
@@ -819,25 +861,20 @@ class _GamePageState extends State<GamePage>
       ),
     );
 
-    final random = Random();
-    final choices = <Map<String, dynamic>>[_listenEntry!];
-
-    final distractors =
-        _validEntries
-            .where(
-              (entry) =>
-                  entry['lemma_id'].toString() !=
-                  _listenEntry!['lemma_id'].toString(),
-            )
-            .toList()
-          ..shuffle(random);
-
-    choices.addAll(distractors.take(3));
-    choices.shuffle(random);
+    await Future<void>.delayed(const Duration(seconds: 3));
 
     if (!mounted) return;
+
+    _reshuffleListenChoices();
+  }
+
+  void _reshuffleListenChoices() {
+    final random = Random();
+
     setState(() {
-      _listenChoices = choices;
+      _listenChoices = List<Map<String, dynamic>>.from(_listenChoices)
+        ..shuffle(random);
+
       _selectedListenId = null;
       _listenAnswerIsCorrect = null;
     });
@@ -1088,134 +1125,114 @@ class _GamePageState extends State<GamePage>
       );
     }
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Text(
-              l10n.game,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                fontFamily: 'Open Sans',
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Wrap(
-              spacing: 16,
-              runSpacing: 8,
-              alignment: WrapAlignment.spaceBetween,
+    return Column(
+      children: [
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '${l10n.pairsMatched}: '
-                  '$matchedPairs / $totalPairs',
-                  style: const TextStyle(fontFamily: 'Open Sans'),
-                ),
-                Text(
-                  '${l10n.elapsedTime}: '
-                  '${_formatDuration(_matchElapsed)}',
-                  style: const TextStyle(fontFamily: 'Open Sans'),
-                ),
-                if (_bestMatchTimeSeconds > 0)
-                  Text(
-                    '${l10n.bestTime}: '
-                    '${_formatDuration(Duration(seconds: _bestMatchTimeSeconds))}',
-                    style: const TextStyle(fontFamily: 'Open Sans'),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          for (final pair in _matchedPairs)
-            AnimatedSlide(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeOut,
-              offset: const Offset(0, -0.1),
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: AppPalette.karelianPanel,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: AppPalette.parchment.withAlpha(64),
-                      width: 1,
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Text(
+                    l10n.game,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: 'Open Sans',
                     ),
                   ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Wrap(
+                    spacing: 16,
+                    runSpacing: 8,
+                    alignment: WrapAlignment.spaceBetween,
                     children: [
                       Text(
-                        '${pair.lemma}',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontFamily: 'Open Sans',
-                          color: AppPalette.ink,
-                        ),
+                        '${l10n.pairsMatched}: '
+                        '$matchedPairs / $totalPairs',
+                        style: const TextStyle(fontFamily: 'Open Sans'),
                       ),
-                      const SizedBox(width: 8),
-                      const Icon(
-                        Icons.arrow_forward_ios_rounded,
-                        size: 14,
-                        color: AppPalette.ink,
-                      ),
-                      const SizedBox(width: 8),
                       Text(
-                        '${pair.meaning}',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontFamily: 'Open Sans',
-                          color: AppPalette.ink,
-                          backgroundColor: AppPalette.translationPanel,
-                        ),
+                        '${l10n.elapsedTime}: '
+                        '${_formatDuration(_matchElapsed)}',
+                        style: const TextStyle(fontFamily: 'Open Sans'),
                       ),
+                      if (_bestMatchTimeSeconds > 0)
+                        Text(
+                          '${l10n.bestTime}: '
+                          '${_formatDuration(Duration(seconds: _bestMatchTimeSeconds))}',
+                          style: const TextStyle(fontFamily: 'Open Sans'),
+                        ),
                     ],
                   ),
                 ),
-              ),
-            ),
-          AnimatedSlide(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOut,
-            offset: _matchedPairs.isEmpty
-                ? const Offset(0, 0)
-                : const Offset(0, -0.1),
-            child: Opacity(
-              opacity: _matchedPairs.isEmpty ? 1.0 : 0.0,
-              child: Column(
-                children: [
-                  const SizedBox(height: 24),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppPalette.karelianPanel,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          l10n.karelianColumn,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontFamily: 'Open Sans',
-                            color: AppPalette.ink,
+                SizedBox(
+                  height: 120,
+                  child: ListView.builder(
+                    itemCount: _matchedPairs.length,
+                    itemBuilder: (BuildContext context, int index) {
+                      final pair = _matchedPairs[index];
+                      return AnimatedSlide(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeOut,
+                        offset: const Offset(0, -0.1),
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: AppPalette.karelianPanel,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: AppPalette.parchment.withAlpha(64),
+                                width: 1,
+                              ),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  '${pair.lemma}',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontFamily: 'Open Sans',
+                                    color: AppPalette.ink,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                const Icon(
+                                  Icons.arrow_forward_ios_rounded,
+                                  size: 14,
+                                  color: AppPalette.ink,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  '${pair.meaning}',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontFamily: 'Open Sans',
+                                    color: AppPalette.ink,
+                                    backgroundColor:
+                                        AppPalette.translationPanel,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ],
-                    ),
+                      );
+                    },
                   ),
-                  const SizedBox(height: 8),
-                  Column(
+                ),
+                Expanded(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       for (int i = 0; i < _leftCards.length; i++)
@@ -1244,63 +1261,68 @@ class _GamePageState extends State<GamePage>
                           ),
                     ],
                   ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 32),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Container(
+              color: AppPalette.translationPanel,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Text(
+                      l10n.translationColumn,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontFamily: 'Open Sans',
+                        color: AppPalette.ink,
+                      ),
+                    ),
+                  ),
+                  if (_rightCards.length > 0) ...[
+                    for (int i = 0; i < _rightCards.length; i++)
+                      if (!_matchedIds.contains(
+                        _rightCards[i]['lemma_id'].toString(),
+                      ))
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: _buildMatchCard(
+                            text: _rightCards[i]['meaning_text'].toString(),
+                            onTap: () {
+                              _selectRightCard(_rightCards[i]);
+                            },
+                            isSelected:
+                                _selectedRightId ==
+                                _rightCards[i]['lemma_id'].toString(),
+                            isMatched: _matchedIds.contains(
+                              _rightCards[i]['lemma_id'].toString(),
+                            ),
+                            isWrong:
+                                _wrongRightId ==
+                                _rightCards[i]['lemma_id'].toString(),
+                            alignment: Alignment.centerRight,
+                            backgroundColor: AppPalette.translationPanel,
+                            audioHintEntryId: _rightCards[i]['lemma_id']
+                                .toString(),
+                            onAudioHintTapped: () =>
+                                _handleAudioHintTapped(_rightCards[i]),
+                          ),
+                        ),
+                  ],
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 24),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppPalette.translationPanel,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Text(
-                    l10n.translationColumn,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontFamily: 'Open Sans',
-                      color: AppPalette.ink,
-                    ),
-                  ),
-                ),
-                for (int i = 0; i < _rightCards.length; i++)
-                  if (!_matchedIds.contains(
-                    _rightCards[i]['lemma_id'].toString(),
-                  ))
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: _buildMatchCard(
-                        text: _rightCards[i]['meaning_text'].toString(),
-                        onTap: () {
-                          _selectRightCard(_rightCards[i]);
-                        },
-                        isSelected:
-                            _selectedRightId ==
-                            _rightCards[i]['lemma_id'].toString(),
-                        isMatched: _matchedIds.contains(
-                          _rightCards[i]['lemma_id'].toString(),
-                        ),
-                        isWrong:
-                            _wrongRightId ==
-                            _rightCards[i]['lemma_id'].toString(),
-                        alignment: Alignment.centerRight,
-                        backgroundColor: AppPalette.translationPanel,
-                        audioHintEntryId: _rightCards[i]['lemma_id'].toString(),
-                        onAudioHintTapped: () =>
-                            _handleAudioHintTapped(_rightCards[i]),
-                      ),
-                    ),
-              ],
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -1400,7 +1422,7 @@ class _GamePageState extends State<GamePage>
 
   void _handleAudioHintTapped(Map<String, dynamic> entry) {
     final lemmaId = entry['lemma_id'].toString();
-    if (_availableAudioIds.contains(lemmaId)) {
+    if (lemmaId == _audioHintLemmaId) {
       _playAudioHint(lemmaId);
     }
   }

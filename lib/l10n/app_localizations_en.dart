@@ -182,8 +182,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noLearningDataYet => 'No learning data yet. Start playing!';
 
   @override
-  String roundOf(Object round, Object total) {
-    return 'Round $round of $total';
+  String roundOf(Object current, Object total) {
+    return 'Round $current of $total';
   }
 
   @override
@@ -209,9 +209,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String wrongChoiceMeaning(Object lemma, Object meaning) {
-    return 'Wrong: $lemma means $meaning';
+    return '$lemma — $meaning';
   }
 
   @override
   String get sessionCompleted => 'Session Completed';
+
+  @override
+  String get restoreArchiveCard => 'Restore the archive card';
+
+  @override
+  String get bestStreak => 'Best streak';
+
+  @override
+  String get cardsNeedReview => 'Cards needing review';
 }

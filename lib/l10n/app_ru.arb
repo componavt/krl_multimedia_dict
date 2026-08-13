@@ -65,6 +65,12 @@
   "hintStartsWith": "начинается на '{letter}'",
   "hintPattern": "{pattern}",
   "wrongChoiceMeaning": "Ошибка: {lemma} означает {meaning}",
-  "sessionCompleted": "Смена завершена",
-  "archiveCard": "Архивная карточка"
+"sessionCompleted": "Смена завершена",
+"archiveCard": "Архивная карточка",
+"restoreArchiveCard": "Восстановите архивную карточку",
+"roundOf": "Раунд {current} из {total}",
+"streak": "Серия",
+"bestStreak": "Лучшая серия",
+"wrongChoiceMeaning": "{lemma} — {meaning}",
+"cardsNeedReview": "Карточки нуждаются в повторении"
 }

@@ -64,5 +64,11 @@
   "hintStartsWith": "starts with '{letter}'",
   "hintPattern": "{pattern}",
   "wrongChoiceMeaning": "Wrong: {lemma} means {meaning}",
-  "sessionCompleted": "Session Completed"
+  "sessionCompleted": "Session Completed",
+"restoreArchiveCard": "Restore the archive card",
+"roundOf": "Round {current} of {total}",
+"streak": "Streak",
+"bestStreak": "Best streak",
+"wrongChoiceMeaning": "{lemma} — {meaning}",
+"cardsNeedReview": "Cards needing review"
 }
