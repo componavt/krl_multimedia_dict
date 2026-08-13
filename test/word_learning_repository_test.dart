@@ -18,6 +18,8 @@ void main() {
       wrongCount: 0,
       recentFirstAttemptResults: [],
       lastPractisedAt: DateTime.now(),
+      matchCorrectCount: 0,
+      lastMatchedAt: null,
     );
     expect(record.mastery, WordMastery.newWord);
   });
@@ -29,6 +31,8 @@ void main() {
       wrongCount: 0,
       recentFirstAttemptResults: [true],
       lastPractisedAt: DateTime.now(),
+      matchCorrectCount: 0,
+      lastMatchedAt: null,
     );
     expect(record.mastery, WordMastery.learning);
   });
@@ -40,6 +44,8 @@ void main() {
       wrongCount: 5,
       recentFirstAttemptResults: [true, false, true, false, true],
       lastPractisedAt: DateTime.now(),
+      matchCorrectCount: 0,
+      lastMatchedAt: null,
     );
     expect(record.mastery, WordMastery.unstable);
   });
@@ -62,6 +68,8 @@ void main() {
         true,
       ],
       lastPractisedAt: DateTime.now(),
+      matchCorrectCount: 0,
+      lastMatchedAt: null,
     );
     expect(record.mastery, WordMastery.confident);
   });
@@ -73,6 +81,8 @@ void main() {
       wrongCount: 0,
       recentFirstAttemptResults: [true, true, false],
       lastPractisedAt: DateTime.now(),
+      matchCorrectCount: 0,
+      lastMatchedAt: null,
     );
     expect(record.firstAttemptAccuracy, 2 / 3);
   });
@@ -84,6 +94,8 @@ void main() {
       wrongCount: 0,
       recentFirstAttemptResults: [true],
       lastPractisedAt: DateTime.now(),
+      matchCorrectCount: 0,
+      lastMatchedAt: null,
     );
 
     final updated = record.copyWith(correctCount: 5);
@@ -98,6 +110,8 @@ void main() {
       wrongCount: 1,
       recentFirstAttemptResults: [true, false, true],
       lastPractisedAt: DateTime(2023, 1, 1),
+      matchCorrectCount: 0,
+      lastMatchedAt: null,
     );
 
     final json = record.toJson();
@@ -114,6 +128,8 @@ void main() {
       'wrong_count': 1,
       'recent_first_attempt_results': [1, 0, 1],
       'last_practised_at': '2023-01-01T00:00:00.000',
+      'match_correct_count': 0,
+      'last_matched_at': null,
     };
 
     final record = WordLearningRecord.fromJson(json);
@@ -199,6 +215,8 @@ void main() {
       wordsConfident: 3,
       wordsUnstable: 2,
       wordsNeedingReview: 4,
+      wordsReinforcedInMatch: 0,
+      pairsMatched: 0,
       activeSession: null,
       previousSession: null,
     );

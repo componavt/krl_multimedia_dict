@@ -66,6 +66,7 @@ class _GamePageState extends State<GamePage>
   Timer? _showAssociationTimer;
 
   final Set<String> _availableAudioIds = <String>{};
+  bool _isAudioIndexReady = false;
   String? _audioHintLemmaId;
 
   Map<String, dynamic>? _listenEntry;
@@ -79,11 +80,10 @@ class _GamePageState extends State<GamePage>
   final Set<String> _matchedIds = <String>{};
   String? _selectedLeftId;
   String? _selectedRightId;
-  String? _wrongLeftId;
-  String? _wrongRightId;
-  bool _isCheckingMatch = false;
-  bool _isMatchCompleted = false;
-  DateTime? _matchStartedAt;
+   String? _wrongLeftId;
+   String? _wrongRightId;
+   bool _isCheckingMatch = false;
+   DateTime? _matchStartedAt;
   Timer? _matchTimer;
   Duration _matchElapsed = Duration.zero;
   int _bestMatchTimeSeconds = 0;
@@ -114,6 +114,7 @@ class _GamePageState extends State<GamePage>
       if (!mounted) return;
 
       setState(() {
+        _isAudioIndexReady = true;
         _isLoading = false;
       });
     } catch (error) {
@@ -148,27 +149,44 @@ class _GamePageState extends State<GamePage>
 
   Future<void> _preloadAudioAssets() async {
     final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
-    final assets = manifest.listAssets();
 
-    final audioIds = <String>{};
+    final manifestAudioIds = <String>{};
+    final audioPathPattern = RegExp(r'^assets/audio/([^/]+)\.wav$');
 
-    for (final entry in _validEntries) {
-      final lemmaId = entry['lemma_id'].toString();
-      final assetPath = 'audio/$lemmaId.wav';
+    for (final assetPath in manifest.listAssets()) {
+      final match = audioPathPattern.firstMatch(assetPath);
 
-      if (assets.contains(assetPath)) {
-        audioIds.add(lemmaId);
+      if (match != null) {
+        manifestAudioIds.add(match.group(1)!);
       }
     }
+
+    final dictionaryIds = _validEntries
+        .map((entry) => entry['lemma_id'].toString())
+        .toSet();
+
+    final usableAudioIds = manifestAudioIds.intersection(dictionaryIds);
 
     if (!mounted) return;
 
     setState(() {
-      _availableAudioIds.clear();
-      _availableAudioIds.addAll(audioIds);
+      _availableAudioIds
+        ..clear()
+        ..addAll(usableAudioIds);
     });
 
-    await _learningRepository.setAudioEnabledWordIds(audioIds);
+    await _learningRepository.setAudioEnabledWordIds(usableAudioIds);
+
+    assert(
+      _availableAudioIds.isNotEmpty,
+      'No dictionary audio assets were discovered in AssetManifest.',
+    );
+
+    debugPrint(
+      'Dictionary entries: ${_validEntries.length}; '
+      'manifest audio assets: ${manifestAudioIds.length}; '
+      'usable audio IDs: ${usableAudioIds.length}',
+    );
   }
 
   Future<void> _playAudioHint(String lemmaId) async {
@@ -180,7 +198,7 @@ class _GamePageState extends State<GamePage>
       final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('${l10n!.audioPlaybackError}: $e'),
+          content: Text('${l10n.audioPlaybackError}: $e'),
           backgroundColor: AppPalette.brickRed,
         ),
       );
@@ -209,7 +227,7 @@ class _GamePageState extends State<GamePage>
       final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('${l10n!.audioPlaybackError}: $e'),
+          content: Text('${l10n.audioPlaybackError}: $e'),
           backgroundColor: AppPalette.brickRed,
         ),
       );
@@ -261,7 +279,7 @@ class _GamePageState extends State<GamePage>
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(l10n!.notEnoughEntries),
+          content: Text(l10n.notEnoughEntries),
           backgroundColor: AppPalette.brickRed,
         ),
       );
@@ -320,7 +338,7 @@ class _GamePageState extends State<GamePage>
       builder: (dialogContext) {
         return AlertDialog(
           title: Text(
-            l10n!.listenAndGuess,
+            l10n.listenAndGuess,
             style: const TextStyle(
               fontFamily: 'Centro',
               fontWeight: FontWeight.w600,
@@ -332,17 +350,17 @@ class _GamePageState extends State<GamePage>
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  l10n!.scoreOutOf(_listenScore, _totalListenRounds),
+                  l10n.scoreOutOf(_listenScore, _totalListenRounds),
                   style: const TextStyle(fontFamily: 'Open Sans'),
                 ),
                 if (_listenStreak > 1)
                   Text(
-                    l10n!.currentStreak(_listenStreak),
+                    l10n.currentStreak(_listenStreak),
                     style: const TextStyle(fontFamily: 'Open Sans'),
                   ),
                 if (_listenBestStreak > 1)
                   Text(
-                    l10n!.bestStreakLabel(_listenBestStreak),
+                    l10n.bestStreakLabel(_listenBestStreak),
                     style: const TextStyle(fontFamily: 'Open Sans'),
                   ),
               ],
@@ -354,7 +372,7 @@ class _GamePageState extends State<GamePage>
                 Navigator.of(dialogContext).pop();
                 _resetListenSession();
               },
-              child: Text(l10n!.playAgain),
+              child: Text(l10n.playAgain),
             ),
             TextButton(
               onPressed: () {
@@ -363,7 +381,7 @@ class _GamePageState extends State<GamePage>
                   _currentMode = GameMode.selection;
                 });
               },
-              child: Text(l10n!.backToGames),
+              child: Text(l10n.backToGames),
             ),
           ],
         );
@@ -393,7 +411,7 @@ class _GamePageState extends State<GamePage>
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(l10n!.notEnoughEntries),
+          content: Text(l10n.notEnoughEntries),
           backgroundColor: Colors.orange,
         ),
       );
@@ -472,12 +490,11 @@ class _GamePageState extends State<GamePage>
       _matchedIds.clear();
       _matchedPairs.clear();
       _selectedLeftId = null;
-      _selectedRightId = null;
-      _wrongLeftId = null;
-      _wrongRightId = null;
-      _isCheckingMatch = false;
-      _isMatchCompleted = false;
-    });
+       _selectedRightId = null;
+       _wrongLeftId = null;
+       _wrongRightId = null;
+       _isCheckingMatch = false;
+     });
 
     if (hintEntryId != null) {
       _audioHintLemmaId = hintEntryId;
@@ -534,12 +551,6 @@ class _GamePageState extends State<GamePage>
     required Alignment alignment,
     required Color backgroundColor,
     String? audioHintEntryId,
-    VoidCallback? onAudioHintTapped,
-    TextAlignVertical? textAlignVertical,
-    TextStyle? style,
-    bool? softWrap,
-    int? maxLines,
-    TextOverflow? overflow,
   }) {
     final Color cardColor = _matchCardColor(
       isSelected: isSelected,
@@ -559,38 +570,20 @@ class _GamePageState extends State<GamePage>
             Expanded(
               child: Text(
                 text,
-                softWrap: softWrap ?? true,
-                maxLines: maxLines ?? 3,
-                overflow: overflow ?? TextOverflow.ellipsis,
-                style:
-                    style ??
-                    const TextStyle(
-                      fontFamily: 'Open Sans',
-                      fontWeight: FontWeight.w600,
-                    ),
+                softWrap: true,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontFamily: 'Open Sans',
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
             if (audioHintEntryId != null &&
-                audioHintEntryId == _audioHintLemmaId &&
-                onAudioHintTapped != null)
-              const SizedBox(width: 8),
-            if (audioHintEntryId != null &&
-                audioHintEntryId == _audioHintLemmaId &&
-                onAudioHintTapped != null)
-              InkWell(
-                onTap: isMatched ? null : onAudioHintTapped,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: AppPalette.amber,
-                    shape: BoxShape.circle,
-                  ),
-                  padding: const EdgeInsets.all(4),
-                  child: const Icon(
-                    Icons.hearing,
-                    size: 16,
-                    color: AppPalette.parchment,
-                  ),
-                ),
+                audioHintEntryId == _audioHintLemmaId)
+              const Padding(
+                padding: EdgeInsets.only(left: 8),
+                child: Icon(Icons.hearing, size: 16, color: AppPalette.amber),
               ),
           ],
         ),
@@ -630,7 +623,7 @@ class _GamePageState extends State<GamePage>
             children: [
               CircularProgressIndicator(),
               const SizedBox(height: 16),
-              Text(l10n!.loading),
+              Text(l10n.loading),
             ],
           ),
         ),
@@ -648,7 +641,7 @@ class _GamePageState extends State<GamePage>
                 Icon(Icons.error_outline, size: 64, color: Colors.red.shade200),
                 const SizedBox(height: 16),
                 Text(
-                  l10n!.gameLoadError,
+                  l10n.gameLoadError,
                   style: const TextStyle(fontFamily: 'Open Sans'),
                 ),
                 const SizedBox(height: 16),
@@ -656,7 +649,7 @@ class _GamePageState extends State<GamePage>
                 const SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: _initializeGameData,
-                  child: Text(l10n!.playAgain),
+                  child: Text(l10n.playAgain),
                 ),
               ],
             ),
@@ -681,21 +674,33 @@ class _GamePageState extends State<GamePage>
                     foregroundColor: AppPalette.parchment,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
-                  onPressed: () {
-                    setState(() {
-                      _currentMode = GameMode.listen;
-                    });
-                    _startListenSession();
-                  },
-                  child: Text(
-                    l10n!.listenAndGuess,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontFamily: 'Open Sans',
-                      fontWeight: FontWeight.w600,
-                      color: AppPalette.parchment,
-                    ),
-                  ),
+                  onPressed: _isAudioIndexReady
+                      ? () {
+                          setState(() {
+                            _currentMode = GameMode.listen;
+                          });
+                          _startListenSession();
+                        }
+                      : null,
+                  child: _isAudioIndexReady
+                      ? Text(
+                          l10n.listenAndGuess,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontFamily: 'Open Sans',
+                            fontWeight: FontWeight.w600,
+                            color: AppPalette.parchment,
+                          ),
+                        )
+                      : Text(
+                          l10n.audioPreparing,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontFamily: 'Open Sans',
+                            fontWeight: FontWeight.w600,
+                            color: AppPalette.parchment,
+                          ),
+                        ),
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
@@ -705,21 +710,33 @@ class _GamePageState extends State<GamePage>
                     foregroundColor: AppPalette.parchment,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
-                  onPressed: () {
-                    setState(() {
-                      _currentMode = GameMode.match;
-                    });
-                    _startMatchRound();
-                  },
-                  child: Text(
-                    l10n!.matchPairs,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontFamily: 'Open Sans',
-                      fontWeight: FontWeight.w600,
-                      color: AppPalette.parchment,
-                    ),
-                  ),
+                  onPressed: _isAudioIndexReady
+                      ? () {
+                          setState(() {
+                            _currentMode = GameMode.match;
+                          });
+                          _startMatchRound();
+                        }
+                      : null,
+                  child: _isAudioIndexReady
+                      ? Text(
+                          l10n.matchPairs,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontFamily: 'Open Sans',
+                            fontWeight: FontWeight.w600,
+                            color: AppPalette.parchment,
+                          ),
+                        )
+                      : Text(
+                          l10n.audioPreparing,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontFamily: 'Open Sans',
+                            fontWeight: FontWeight.w600,
+                            color: AppPalette.parchment,
+                          ),
+                        ),
                 ),
               ],
             ),
@@ -737,7 +754,7 @@ class _GamePageState extends State<GamePage>
         centerTitle: true,
         backgroundColor: AppPalette.archiveSurface,
         title: Text(
-          l10n!.game,
+          l10n.game,
           style: const TextStyle(
             fontFamily: 'Centro',
             fontWeight: FontWeight.w600,
@@ -768,7 +785,16 @@ class _GamePageState extends State<GamePage>
   }
 
   Future<void> _startListenSession() async {
-    if (_validEntries.isEmpty) {
+    if (!_isAudioIndexReady || _availableAudioIds.length < 4) {
+      if (!mounted) return;
+
+      final l10n = AppLocalizations.of(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.notEnoughEntries),
+          backgroundColor: AppPalette.brickRed,
+        ),
+      );
       return;
     }
 
@@ -817,7 +843,7 @@ class _GamePageState extends State<GamePage>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              l10n!.correct,
+              l10n.correct,
               style: const TextStyle(
                 fontWeight: FontWeight.w700,
                 fontFamily: 'Open Sans',
@@ -871,7 +897,7 @@ class _GamePageState extends State<GamePage>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '${l10n!.wrongTryAgain} ${l10n!.listenAndGuess}',
+              '${l10n.wrongTryAgain} ${l10n.listenAndGuess}',
               style: const TextStyle(
                 fontWeight: FontWeight.w700,
                 fontFamily: 'Open Sans',
@@ -879,7 +905,7 @@ class _GamePageState extends State<GamePage>
             ),
             const SizedBox(height: 4),
             Text(
-              l10n!.wrongChoiceMeaning(
+              l10n.wrongChoiceMeaning(
                 _listenEntry!['lemma'].toString(),
                 chosenMeaning,
               ),
@@ -920,7 +946,7 @@ class _GamePageState extends State<GamePage>
           children: [
             CircularProgressIndicator(),
             const SizedBox(height: 16),
-            Text(l10n!.loading),
+            Text(l10n.loading),
           ],
         ),
       );
@@ -936,7 +962,7 @@ class _GamePageState extends State<GamePage>
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                '${l10n!.listenAndGuess}: ${_listenRoundNumber + 1} / $_totalListenRounds',
+                '${l10n.listenAndGuess}: ${_listenRoundNumber + 1} / $_totalListenRounds',
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -984,7 +1010,7 @@ class _GamePageState extends State<GamePage>
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      l10n!.listen,
+                      l10n.listen,
                       style: const TextStyle(color: AppPalette.parchment),
                     ),
                   ],
@@ -1043,7 +1069,7 @@ class _GamePageState extends State<GamePage>
               Column(
                 children: [
                   Text(
-                    l10n!.scoreOutOf(_listenScore, _totalListenRounds),
+                    l10n.scoreOutOf(_listenScore, _totalListenRounds),
                     style: const TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
@@ -1065,7 +1091,7 @@ class _GamePageState extends State<GamePage>
               Column(
                 children: [
                   Text(
-                    l10n!.currentStreak(_listenStreak),
+                    l10n.currentStreak(_listenStreak),
                     style: const TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
@@ -1088,7 +1114,7 @@ class _GamePageState extends State<GamePage>
                 Column(
                   children: [
                     Text(
-                      l10n!.bestStreakLabel(_listenBestStreak),
+                      l10n.bestStreakLabel(_listenBestStreak),
                       style: const TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
@@ -1128,7 +1154,7 @@ class _GamePageState extends State<GamePage>
           children: [
             CircularProgressIndicator(),
             const SizedBox(height: 16),
-            Text(l10n!.loading),
+            Text(l10n.loading),
           ],
         ),
       );
@@ -1139,7 +1165,6 @@ class _GamePageState extends State<GamePage>
     final bool allMatched = matchedPairs == totalPairs;
 
     if (allMatched) {
-      _completeMatchRound();
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -1147,7 +1172,7 @@ class _GamePageState extends State<GamePage>
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                l10n!.matchCompleted,
+                l10n.matchCompleted,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 20,
@@ -1171,7 +1196,7 @@ class _GamePageState extends State<GamePage>
               children: [
                 Expanded(
                   child: _buildMatchZone(
-                    title: l10n!.karelianColumn,
+                    title: l10n.karelianColumn,
                     backgroundColor: AppPalette.karelianPanel,
                     cards: _leftCards,
                     isLeftSide: true,
@@ -1180,7 +1205,7 @@ class _GamePageState extends State<GamePage>
                 const SizedBox(width: 8),
                 Expanded(
                   child: _buildMatchZone(
-                    title: l10n!.translationColumn,
+                    title: l10n.translationColumn,
                     backgroundColor: AppPalette.translationPanel,
                     cards: _rightCards,
                     isLeftSide: false,
@@ -1201,8 +1226,6 @@ class _GamePageState extends State<GamePage>
     required List<Map<String, dynamic>> cards,
     required bool isLeftSide,
   }) {
-    final l10n = AppLocalizations.of(context);
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1241,16 +1264,14 @@ class _GamePageState extends State<GamePage>
                   backgroundColor: backgroundColor,
                 );
               } else {
-                final cardStyle = const TextStyle(
-                  fontSize: 14,
-                  fontFamily: 'Open Sans',
-                  fontWeight: FontWeight.w600,
-                );
                 return _buildMatchCard(
                   text: card['meaning_text'].toString(),
-                  textAlignVertical: TextAlignVertical.center,
                   onTap: () {
                     _selectRightCard(card);
+
+                    if (cardId == _audioHintLemmaId) {
+                      _playAudioHint(cardId);
+                    }
                   },
                   isSelected: _selectedRightId == cardId,
                   isMatched: false,
@@ -1258,10 +1279,6 @@ class _GamePageState extends State<GamePage>
                   alignment: Alignment.centerRight,
                   backgroundColor: backgroundColor,
                   audioHintEntryId: cardId,
-                  onAudioHintTapped: () => _handleAudioHintTapped(card),
-                  softWrap: true,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
                 );
               }
             },
@@ -1289,7 +1306,7 @@ class _GamePageState extends State<GamePage>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              l10n!.restoredPairs,
+              l10n.restoredPairs,
               style: const TextStyle(
                 color: AppPalette.parchment,
                 fontWeight: FontWeight.w600,
@@ -1415,8 +1432,13 @@ class _GamePageState extends State<GamePage>
         _isCheckingMatch = false;
       });
 
+      await _learningRepository.registerMatchSuccess(lemmaId: leftId);
+
+      if (_availableAudioIds.contains(leftId)) {
+        await _playAudioHint(leftId);
+      }
+
       if (_matchedIds.length == _matchEntries.length) {
-        _isMatchCompleted = true;
         _matchTimer?.cancel();
         if (!mounted) return;
 
@@ -1430,14 +1452,14 @@ class _GamePageState extends State<GamePage>
           builder: (dialogContext) {
             return AlertDialog(
               title: Text(
-                l10n!.matchCompleted,
+                l10n.matchCompleted,
                 style: const TextStyle(
                   fontFamily: 'Centro',
                   fontWeight: FontWeight.w600,
                 ),
               ),
               content: Text(
-                '${l10n!.elapsedTime}: '
+                '${l10n.elapsedTime}: '
                 '${_formatDuration(_matchElapsed)}',
               ),
               actions: [
@@ -1446,7 +1468,7 @@ class _GamePageState extends State<GamePage>
                     Navigator.of(dialogContext).pop();
                     _startMatchRound();
                   },
-                  child: Text(l10n!.playAgain),
+                  child: Text(l10n.playAgain),
                 ),
                 TextButton(
                   onPressed: () {
@@ -1455,7 +1477,7 @@ class _GamePageState extends State<GamePage>
                       _currentMode = GameMode.selection;
                     });
                   },
-                  child: Text(l10n!.backToGames),
+                  child: Text(l10n.backToGames),
                 ),
               ],
             );
@@ -1483,67 +1505,5 @@ class _GamePageState extends State<GamePage>
       _selectedLeftId = null;
       _selectedRightId = null;
     });
-  }
-
-  void _handleAudioHintTapped(Map<String, dynamic> entry) {
-    final lemmaId = entry['lemma_id'].toString();
-    if (lemmaId == _audioHintLemmaId) {
-      _playAudioHint(lemmaId);
-    }
-  }
-
-  Future<void> _completeMatchRound() async {
-    if (_isMatchCompleted) {
-      return;
-    }
-
-    _isMatchCompleted = true;
-    _matchTimer?.cancel();
-
-    await _saveMatchBestTime(_matchElapsed);
-
-    if (!mounted) {
-      return;
-    }
-
-    final l10n = AppLocalizations.of(context);
-
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: Text(
-            l10n!.matchCompleted,
-            style: const TextStyle(
-              fontFamily: 'Centro',
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          content: Text(
-            '${l10n!.elapsedTime}: '
-            '${_formatDuration(_matchElapsed)}',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-                _startMatchRound();
-              },
-              child: Text(l10n!.playAgain),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-                setState(() {
-                  _currentMode = GameMode.selection;
-                });
-              },
-              child: Text(l10n!.backToGames),
-            ),
-          ],
-        );
-      },
-    );
   }
 }

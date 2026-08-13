@@ -40,6 +40,22 @@ class WordLearningRepository {
     await prefs.setString(_recordsKey, jsonEncode(records));
   }
 
+  Future<void> registerMatchSuccess({required String lemmaId}) async {
+    final prefs = await SharedPreferences.getInstance();
+    final records = await _getAllRecordsDict();
+
+    if (!records.containsKey(lemmaId)) {
+      records[lemmaId] = _createNewMatchRecordJson(lemmaId);
+    } else {
+      final record = WordLearningRecord.fromJson(
+        records[lemmaId]! as Map<String, dynamic>,
+      );
+      records[lemmaId] = _updateMatchRecordJson(record);
+    }
+
+    await prefs.setString(_recordsKey, jsonEncode(records));
+  }
+
   Future<Map<String, WordLearningRecord>> getAllRecords() async {
     final records = await _getAllRecordsDict();
     return records.map(
@@ -74,6 +90,8 @@ class WordLearningRepository {
       wrongCount: firstAttemptCorrect ? 0 : 1,
       recentFirstAttemptResults: [firstAttemptCorrect],
       lastPractisedAt: DateTime.now(),
+      matchCorrectCount: 0,
+      lastMatchedAt: null,
     ).toJson();
   }
 
@@ -93,6 +111,32 @@ class WordLearningRepository {
       wrongCount: record.wrongCount + (firstAttemptCorrect ? 0 : 1),
       recentFirstAttemptResults: updatedResults,
       lastPractisedAt: DateTime.now(),
+      matchCorrectCount: record.matchCorrectCount,
+      lastMatchedAt: record.lastMatchedAt,
+    ).toJson();
+  }
+
+  Map<String, dynamic> _createNewMatchRecordJson(String lemmaId) {
+    return WordLearningRecord(
+      lemmaId: lemmaId,
+      correctCount: 0,
+      wrongCount: 0,
+      recentFirstAttemptResults: <bool>[],
+      lastPractisedAt: DateTime.now(),
+      matchCorrectCount: 1,
+      lastMatchedAt: DateTime.now(),
+    ).toJson();
+  }
+
+  Map<String, dynamic> _updateMatchRecordJson(WordLearningRecord record) {
+    return WordLearningRecord(
+      lemmaId: record.lemmaId,
+      correctCount: record.correctCount,
+      wrongCount: record.wrongCount,
+      recentFirstAttemptResults: record.recentFirstAttemptResults,
+      lastPractisedAt: record.lastPractisedAt,
+      matchCorrectCount: record.matchCorrectCount + 1,
+      lastMatchedAt: DateTime.now(),
     ).toJson();
   }
 
@@ -246,10 +290,17 @@ class WordLearningRepository {
     int wordsConfident = 0;
     int wordsUnstable = 0;
     int wordsNeedingReview = 0;
+    int wordsReinforcedInMatch = 0;
+    int pairsMatched = 0;
 
     for (final record in records.values) {
       if (record.correctCount >= 1) {
         totalWordsWithAtLeastOneCorrect++;
+      }
+
+      if (record.matchCorrectCount > 0) {
+        wordsReinforcedInMatch++;
+        pairsMatched += record.matchCorrectCount;
       }
 
       switch (record.mastery) {
@@ -278,6 +329,8 @@ class WordLearningRepository {
       wordsConfident: wordsConfident,
       wordsUnstable: wordsUnstable,
       wordsNeedingReview: wordsNeedingReview,
+      wordsReinforcedInMatch: wordsReinforcedInMatch,
+      pairsMatched: pairsMatched,
       activeSession: activeSession,
       previousSession: previousSession,
     );

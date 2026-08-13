@@ -248,6 +248,12 @@ abstract class AppLocalizations {
   /// **'Not enough dictionary entries'**
   String get notEnoughEntries;
 
+  /// No description provided for @audioPreparing.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing audio archive...'**
+  String get audioPreparing;
+
   /// No description provided for @wrongTryAgain.
   ///
   /// In en, this message translates to:
@@ -445,6 +451,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Restored pairs'**
   String get restoredPairs;
+
+  /// No description provided for @pairsMatchedTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Pairs matched'**
+  String get pairsMatchedTotal;
+
+  /// No description provided for @wordsReinforced.
+  ///
+  /// In en, this message translates to:
+  /// **'Words reinforced'**
+  String get wordsReinforced;
 
   /// No description provided for @textSize.
   ///

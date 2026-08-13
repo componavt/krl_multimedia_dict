@@ -85,6 +85,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notEnoughEntries => 'Not enough dictionary entries';
 
   @override
+  String get audioPreparing => 'Preparing audio archive...';
+
+  @override
   String get wrongTryAgain => 'Incorrect. Listen again.';
 
   @override
@@ -183,6 +186,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get restoredPairs => 'Restored pairs';
+
+  @override
+  String get pairsMatchedTotal => 'Pairs matched';
+
+  @override
+  String get wordsReinforced => 'Words reinforced';
 
   @override
   String get textSize => 'Text size';

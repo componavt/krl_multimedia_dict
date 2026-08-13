@@ -13,11 +13,11 @@ class TextScaleController extends ChangeNotifier {
   double get scale {
     switch (_size) {
       case AppTextSize.small:
-        return 0.90;
+        return 0.95;
       case AppTextSize.medium:
-        return 1.00;
+        return 1.25;
       case AppTextSize.large:
-        return 1.20;
+        return 1.75;
     }
   }
 
@@ -25,11 +25,18 @@ class TextScaleController extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     final stored = prefs.getString(_storageKey);
 
-    final parsed = AppTextSize.values.where((value) => value.name == stored);
-
-    if (parsed.isNotEmpty) {
-      _size = parsed.first;
-      notifyListeners();
+    if (stored != null) {
+      final parsed = AppTextSize.values
+          .where((value) => value.name == stored)
+          .toList();
+      if (parsed.isNotEmpty) {
+        _size = parsed.first;
+        notifyListeners();
+      } else {
+        _size = AppTextSize.medium;
+        notifyListeners();
+        await prefs.setString(_storageKey, _size.name);
+      }
     }
   }
 

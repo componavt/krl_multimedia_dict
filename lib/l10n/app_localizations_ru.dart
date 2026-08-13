@@ -67,7 +67,7 @@ class AppLocalizationsRu extends AppLocalizations {
       'Прослушайте слово и выберите правильный вариант';
 
   @override
-  String get listen => 'Прослушать';
+  String get listen => 'Слушать';
 
   @override
   String get score => 'Счёт';
@@ -83,6 +83,9 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get notEnoughEntries => 'Недостаточно записей в словаре';
+
+  @override
+  String get audioPreparing => 'Подготовка аудиоархива...';
 
   @override
   String get wrongTryAgain => 'Неверно. Послушайте ещё раз.';
@@ -183,6 +186,12 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get restoredPairs => 'Восстановленные пары';
+
+  @override
+  String get pairsMatchedTotal => 'Сопоставлено пар';
+
+  @override
+  String get wordsReinforced => 'Повторено в игре пар';
 
   @override
   String get textSize => 'Размер шрифта';

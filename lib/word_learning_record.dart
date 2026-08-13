@@ -7,6 +7,8 @@ class WordLearningRecord {
     required this.wrongCount,
     required this.recentFirstAttemptResults,
     required this.lastPractisedAt,
+    required this.matchCorrectCount,
+    required this.lastMatchedAt,
   });
 
   final String lemmaId;
@@ -16,6 +18,8 @@ class WordLearningRecord {
   final List<bool> recentFirstAttemptResults;
 
   final DateTime lastPractisedAt;
+  final int matchCorrectCount;
+  final DateTime? lastMatchedAt;
 
   int get totalCompletedRounds => correctCount;
 
@@ -63,6 +67,8 @@ class WordLearningRecord {
     int? wrongCount,
     List<bool>? recentFirstAttemptResults,
     DateTime? lastPractisedAt,
+    int? matchCorrectCount,
+    DateTime? lastMatchedAt,
   }) {
     return WordLearningRecord(
       lemmaId: lemmaId ?? this.lemmaId,
@@ -71,6 +77,8 @@ class WordLearningRecord {
       recentFirstAttemptResults:
           recentFirstAttemptResults ?? this.recentFirstAttemptResults,
       lastPractisedAt: lastPractisedAt ?? this.lastPractisedAt,
+      matchCorrectCount: matchCorrectCount ?? this.matchCorrectCount,
+      lastMatchedAt: lastMatchedAt ?? this.lastMatchedAt,
     );
   }
 
@@ -83,6 +91,8 @@ class WordLearningRecord {
           .map((r) => r ? 1 : 0)
           .toList(),
       'last_practised_at': lastPractisedAt.toIso8601String(),
+      'match_correct_count': matchCorrectCount,
+      'last_matched_at': lastMatchedAt?.toIso8601String(),
     };
   }
 
@@ -97,6 +107,10 @@ class WordLearningRecord {
       wrongCount: json['wrong_count'] as int,
       recentFirstAttemptResults: recentResults,
       lastPractisedAt: DateTime.parse(json['last_practised_at'] as String),
+      matchCorrectCount: (json['match_correct_count'] as int?) ?? 0,
+      lastMatchedAt: json['last_matched_at'] == null
+          ? null
+          : DateTime.parse(json['last_matched_at'] as String),
     );
   }
 }
@@ -178,6 +192,8 @@ class LearningStatistics {
     required this.wordsConfident,
     required this.wordsUnstable,
     required this.wordsNeedingReview,
+    required this.wordsReinforcedInMatch,
+    required this.pairsMatched,
     this.activeSession,
     this.previousSession,
   });
@@ -187,6 +203,8 @@ class LearningStatistics {
   final int wordsConfident;
   final int wordsUnstable;
   final int wordsNeedingReview;
+  final int wordsReinforcedInMatch;
+  final int pairsMatched;
 
   final LearningSessionSummary? activeSession;
   final LearningSessionSummary? previousSession;
@@ -199,6 +217,8 @@ class LearningStatistics {
       wordsConfident: json['words_confident'] as int,
       wordsUnstable: json['words_unstable'] as int,
       wordsNeedingReview: json['words_needing_review'] as int,
+      wordsReinforcedInMatch: (json['words_reinforced_in_match'] as int?) ?? 0,
+      pairsMatched: (json['pairs_matched'] as int?) ?? 0,
       activeSession: json['active_session'] != null
           ? LearningSessionSummary.fromJson(
               json['active_session'] as Map<String, dynamic>,
@@ -219,6 +239,8 @@ class LearningStatistics {
       'words_confident': wordsConfident,
       'words_unstable': wordsUnstable,
       'words_needing_review': wordsNeedingReview,
+      'words_reinforced_in_match': wordsReinforcedInMatch,
+      'pairs_matched': pairsMatched,
       'active_session': activeSession?.toJson(),
       'previous_session': previousSession?.toJson(),
     };
