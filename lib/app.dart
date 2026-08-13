@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'dictionary_home_page.dart';
 import 'l10n/app_localizations.dart';
 import 'locale_controller.dart';
-import 'main.dart';
 
 class DictionaryApp extends StatelessWidget {
-  const DictionaryApp({
-    super.key,
-    required this.localeController,
-  });
+  const DictionaryApp({super.key, required this.localeController});
 
   final LocaleController localeController;
 

@@ -53,7 +53,11 @@ void main() {
       {'lemma': 'sika', 'meaning_text': 'сика (олень)'},
     ];
 
-    final result = SearchUtils.filterEntries(entries, 'кала', SearchMode.atStart);
+    final result = SearchUtils.filterEntries(
+      entries,
+      'кала',
+      SearchMode.atStart,
+    );
     expect(result, hasLength(1));
     expect(result[0]['lemma'], 'kala');
   });

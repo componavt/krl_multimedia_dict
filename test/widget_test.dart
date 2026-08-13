@@ -7,7 +7,9 @@ import 'package:vepkar_audio/l10n/app_localizations.dart';
 import 'package:vepkar_audio/locale_controller.dart';
 
 void main() {
-  testWidgets('DictionaryApp instantiates without error', (WidgetTester tester) async {
+  testWidgets('DictionaryApp instantiates without error', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(
       MaterialApp(
         localizationsDelegates: const [
@@ -26,7 +28,9 @@ void main() {
     expect(find.byType(DictionaryApp), findsOneWidget);
   });
 
-  testWidgets('DictionaryApp does not show Icons.add', (WidgetTester tester) async {
+  testWidgets('DictionaryApp does not show Icons.add', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(
       MaterialApp(
         localizationsDelegates: const [

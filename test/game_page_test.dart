@@ -7,7 +7,9 @@ import 'package:vepkar_audio/locale_controller.dart';
 import 'package:vepkar_audio/l10n/app_localizations.dart';
 
 void main() {
-  testWidgets('GamePage instantiates without error', (WidgetTester tester) async {
+  testWidgets('GamePage instantiates without error', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(
       MaterialApp(
         localizationsDelegates: const [
