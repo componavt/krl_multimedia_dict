@@ -1,12 +1,14 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
+import 'app_theme.dart';
 import 'dictionary_repository.dart';
 import 'game_page.dart';
 import 'l10n/app_localizations.dart';
 import 'locale_controller.dart';
+import 'search_utils.dart';
 
 class DetailPage extends StatefulWidget {
   final String word;
@@ -46,7 +48,6 @@ class _DetailPageState extends State<DetailPage> {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        backgroundColor: Colors.red,
         title: Text(
           l10n.appTitle,
           style: const TextStyle(
@@ -118,7 +119,7 @@ class _DetailPageState extends State<DetailPage> {
           onPressed: () {
             _playAudio(widget.audioPath);
           },
-          backgroundColor: Colors.red,
+          backgroundColor: AppPalette.mutedBrown,
           child: const Icon(Icons.play_arrow_rounded, size: 40),
         ),
       ),
@@ -141,9 +142,7 @@ class _MyAppState extends State<MyApp> {
   late final Future<List<dynamic>> _entriesFuture;
   List<dynamic> _allEntries = <dynamic>[];
   List<dynamic> _filteredData = <dynamic>[];
-  List<String> modes = <String>[];
-  String _searchMode = '';
-  int currentIndex = 0;
+  SearchMode _searchMode = SearchMode.atStart;
   String _value = "";
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
@@ -153,7 +152,6 @@ class _MyAppState extends State<MyApp> {
 
   List<String> _searchHistory = <String>[];
   bool _showHistory = false;
-  List<String> _localModes = <String>[];
 
   @override
   void initState() {
@@ -165,22 +163,6 @@ class _MyAppState extends State<MyApp> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final l10n = AppLocalizations.of(context);
-    final newModes = <String>[
-      l10n.searchAtStart,
-      l10n.searchInside,
-      l10n.searchAtEnd,
-    ];
-    if (listEquals<String>(_localModes, newModes)) {
-      return;
-    }
-    setState(() {
-      _localModes = newModes;
-      if (modes.isEmpty) {
-        modes = newModes;
-        _searchMode = modes.first;
-      }
-    });
   }
 
   @override
@@ -229,51 +211,32 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
-  void _applySearch(String text) {
-    final query = text.trim().toLowerCase();
+  void _applySearch(String text, {SearchMode? mode, bool hideHistory = false}) {
+    final effectiveMode = mode ?? _searchMode;
+    final result = SearchUtils.filterEntries(_allEntries, text, effectiveMode);
 
     setState(() {
-      if (query.isEmpty) {
-        _filteredData = List<dynamic>.from(_allEntries);
-        return;
+      _value = text;
+      _searchMode = effectiveMode;
+      _filteredData = result;
+
+      if (hideHistory) {
+        _showHistory = false;
       }
-
-      _filteredData = _allEntries.where((dynamic element) {
-        final lemma = (element['lemma'] ?? '').toString().toLowerCase();
-        final meaning = (element['meaning_text'] ?? '')
-            .toString()
-            .toLowerCase();
-
-        final bool lemmaMatches;
-        if (_searchMode == modes[0]) {
-          lemmaMatches = lemma.startsWith(query);
-        } else if (_searchMode == modes[1]) {
-          lemmaMatches = lemma.contains(query);
-        } else {
-          lemmaMatches = lemma.endsWith(query);
-        }
-
-        return lemmaMatches || meaning.contains(query);
-      }).toList();
     });
   }
 
-  Future<void> _cycleSearchMode() async {
-    final l10n = AppLocalizations.of(context);
-    final newModes = <String>[
-      l10n.searchAtStart,
-      l10n.searchInside,
-      l10n.searchAtEnd,
-    ];
+  void _cycleSearchMode() {
+    final nextIndex = (_searchMode.index + 1) % SearchMode.values.length;
+    _applySearch(_value, mode: SearchMode.values[nextIndex], hideHistory: true);
+  }
 
-    setState(() {
-      _localModes = newModes;
-      modes = newModes;
-      _searchMode = modes[currentIndex % modes.length];
-      currentIndex = (currentIndex + 1) % modes.length;
-    });
-
-    _applySearch(_value);
+  String _searchModeLabel(AppLocalizations l10n) {
+    return switch (_searchMode) {
+      SearchMode.atStart => l10n.searchAtStart,
+      SearchMode.inside => l10n.searchInside,
+      SearchMode.atEnd => l10n.searchAtEnd,
+    };
   }
 
   void _showSearchHistory() {
@@ -310,7 +273,6 @@ class _MyAppState extends State<MyApp> {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        backgroundColor: Colors.red,
         title: TextField(
           focusNode: _searchFocusNode,
           controller: _searchController,
@@ -332,19 +294,10 @@ class _MyAppState extends State<MyApp> {
           ),
           onTap: _showSearchHistory,
           onChanged: (text) {
-            _value = text;
-            _applySearch(text);
+            _applySearch(text, hideHistory: true);
           },
           onSubmitted: _saveSearchQuery,
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.menu),
-            onPressed: () {
-              Scaffold.of(context).openDrawer();
-            },
-          ),
-        ],
       ),
       body: Column(
         children: [
@@ -531,7 +484,7 @@ class _MyAppState extends State<MyApp> {
                 ),
               ),
               subtitle: Text(
-                _searchMode,
+                _searchModeLabel(l10n),
                 style: const TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 13,
@@ -589,8 +542,29 @@ class _MyAppState extends State<MyApp> {
   }
 }
 
-class AboutPage extends StatelessWidget {
+class AboutPage extends StatefulWidget {
   const AboutPage({super.key});
+
+  @override
+  State<AboutPage> createState() => _AboutPageState();
+}
+
+class _AboutPageState extends State<AboutPage> {
+  String _appVersion = '1.0.5';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPackageInfo();
+  }
+
+  Future<void> _loadPackageInfo() async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    if (!mounted) return;
+    setState(() {
+      _appVersion = packageInfo.version;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -598,13 +572,12 @@ class AboutPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        backgroundColor: Colors.red,
         title: Text(
-          l10n.about,
+          l10n.appTitle,
           style: const TextStyle(
             fontFamily: 'Centro',
             fontWeight: FontWeight.w600,
-            fontSize: 24,
+            fontSize: 16,
           ),
         ),
       ),
@@ -616,7 +589,7 @@ class AboutPage extends StatelessWidget {
             Container(
               padding: const EdgeInsets.only(top: 10),
               child: Text(
-                '${l10n.versionLabel} 1.0.5',
+                '${l10n.versionLabel} $_appVersion',
                 style: const TextStyle(
                   fontWeight: FontWeight.w500,
                   fontSize: 12,

@@ -28,7 +28,7 @@ void main() {
     expect(find.byType(DictionaryApp), findsOneWidget);
   });
 
-  testWidgets('DictionaryApp does not show Icons.add', (
+  testWidgets('DictionaryApp shows Drawer hamburger icon once', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(
@@ -46,6 +46,7 @@ void main() {
       ),
     );
 
+    expect(find.byIcon(Icons.menu), findsOneWidget);
     expect(find.byIcon(Icons.add), findsNothing);
   });
 }

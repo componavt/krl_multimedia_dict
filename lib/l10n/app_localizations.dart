@@ -337,6 +337,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Version'**
   String get versionLabel;
+
+  /// No description provided for @pairsMatched.
+  ///
+  /// In en, this message translates to:
+  /// **'Matched pairs'**
+  String get pairsMatched;
+
+  /// No description provided for @elapsedTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Time'**
+  String get elapsedTime;
+
+  /// No description provided for @karelianColumn.
+  ///
+  /// In en, this message translates to:
+  /// **'Karelian'**
+  String get karelianColumn;
+
+  /// No description provided for @translationColumn.
+  ///
+  /// In en, this message translates to:
+  /// **'Translation'**
+  String get translationColumn;
 }
 
 class _AppLocalizationsDelegate

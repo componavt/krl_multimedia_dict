@@ -4,21 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'app_theme.dart';
 import 'dictionary_repository.dart';
 import 'l10n/app_localizations.dart';
 import 'locale_controller.dart';
 
-enum GameMode {
-  selection,
-  listen,
-  match,
-}
+enum GameMode { selection, listen, match }
 
 class GamePage extends StatefulWidget {
-  const GamePage({
-    super.key,
-    required this.localeController,
-  });
+  const GamePage({super.key, required this.localeController});
 
   final LocaleController localeController;
 
@@ -48,7 +42,10 @@ class _GamePageState extends State<GamePage> {
   final Set<String> _matchedIds = <String>{};
   String? _selectedLeftId;
   String? _selectedRightId;
+  String? _wrongLeftId;
+  String? _wrongRightId;
   bool _isCheckingMatch = false;
+  bool _isMatchCompleted = false;
   DateTime? _matchStartedAt;
   Timer? _matchTimer;
   Duration _matchElapsed = Duration.zero;
@@ -134,7 +131,7 @@ class _GamePageState extends State<GamePage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${l10n.audioPlaybackError}: $e'),
-          backgroundColor: Colors.red,
+          backgroundColor: AppPalette.brickRed,
         ),
       );
     }
@@ -145,18 +142,18 @@ class _GamePageState extends State<GamePage> {
     final correctId = _listenEntry!['lemma_id'].toString();
 
     if (_listenAnswerIsCorrect == true && choiceId == correctId) {
-      return Colors.green;
+      return AppPalette.mossGreen;
     }
 
     if (_listenAnswerIsCorrect == false && choiceId == _selectedListenId) {
-      return Colors.red;
+      return AppPalette.brickRed;
     }
 
     if (_listenAnswerIsCorrect == false && choiceId == correctId) {
-      return Colors.green;
+      return AppPalette.amber;
     }
 
-    return Colors.red;
+    return AppPalette.mutedBrown;
   }
 
   Future<void> _startListenRound() async {
@@ -220,13 +217,17 @@ class _GamePageState extends State<GamePage> {
     final selectedEntries = <Map<String, dynamic>>[];
     while (selectedEntries.length < 5 && validEntries.isNotEmpty) {
       final entry = validEntries[random.nextInt(validEntries.length)];
-      if (!selectedEntries.any((e) => e['lemma_id'].toString() == entry['lemma_id'].toString())) {
+      if (!selectedEntries.any(
+        (e) => e['lemma_id'].toString() == entry['lemma_id'].toString(),
+      )) {
         selectedEntries.add(entry);
       }
     }
 
-    final leftList = List<Map<String, dynamic>>.from(selectedEntries)..shuffle(random);
-    final rightList = List<Map<String, dynamic>>.from(selectedEntries)..shuffle(random);
+    final leftList = List<Map<String, dynamic>>.from(selectedEntries)
+      ..shuffle(random);
+    final rightList = List<Map<String, dynamic>>.from(selectedEntries)
+      ..shuffle(random);
 
     if (!mounted) return;
     setState(() {
@@ -236,7 +237,10 @@ class _GamePageState extends State<GamePage> {
       _matchedIds.clear();
       _selectedLeftId = null;
       _selectedRightId = null;
+      _wrongLeftId = null;
+      _wrongRightId = null;
       _isCheckingMatch = false;
+      _isMatchCompleted = false;
     });
 
     if (_matchTimer != null) {
@@ -256,39 +260,62 @@ class _GamePageState extends State<GamePage> {
     });
   }
 
+  String _formatDuration(Duration duration) {
+    final minutes = duration.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final seconds = duration.inSeconds.remainder(60).toString().padLeft(2, '0');
+
+    return '$minutes:$seconds';
+  }
+
+  Color _matchCardColor({
+    required bool isSelected,
+    required bool isMatched,
+    required bool isWrong,
+  }) {
+    if (isMatched) {
+      return AppPalette.mossGreen;
+    }
+    if (isWrong) {
+      return AppPalette.brickRed;
+    }
+    if (isSelected) {
+      return AppPalette.amber;
+    }
+    return AppPalette.parchment;
+  }
+
   Widget _buildMatchCard({
     required String text,
     required VoidCallback? onTap,
     required bool isSelected,
     required bool isMatched,
     required bool isWrong,
+    required Alignment alignment,
   }) {
-    final backgroundColor = isMatched
-        ? Colors.grey.shade300
-        : isWrong
-        ? Colors.red.shade200
-        : isSelected
-        ? Colors.red.shade100
-        : Colors.white;
-
-    return Material(
-      color: backgroundColor,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        onTap: isMatched ? null : onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.black54),
+    return Align(
+      alignment: alignment,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 330),
+        child: Material(
+          color: _matchCardColor(
+            isSelected: isSelected,
+            isMatched: isMatched,
+            isWrong: isWrong,
           ),
-          child: Text(
-            text,
-            style: const TextStyle(
-              fontFamily: 'Open Sans',
-              fontWeight: FontWeight.w600,
+          borderRadius: BorderRadius.circular(10),
+          child: InkWell(
+            onTap: isMatched ? null : onTap,
+            borderRadius: BorderRadius.circular(10),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              child: Text(
+                text,
+                softWrap: true,
+                style: const TextStyle(
+                  fontFamily: 'Open Sans',
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
           ),
         ),
@@ -337,10 +364,7 @@ class _GamePageState extends State<GamePage> {
                   style: const TextStyle(fontFamily: 'Open Sans'),
                 ),
                 const SizedBox(height: 16),
-                Text(
-                  _loadError.toString(),
-                  textAlign: TextAlign.center,
-                ),
+                Text(_loadError.toString(), textAlign: TextAlign.center),
                 const SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: _loadEntries,
@@ -365,7 +389,8 @@ class _GamePageState extends State<GamePage> {
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     minimumSize: const Size(double.infinity, 60),
-                    backgroundColor: Colors.red,
+                    backgroundColor: AppPalette.mutedBrown,
+                    foregroundColor: AppPalette.parchment,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
                   onPressed: () {
@@ -380,6 +405,7 @@ class _GamePageState extends State<GamePage> {
                       fontSize: 18,
                       fontFamily: 'Open Sans',
                       fontWeight: FontWeight.w600,
+                      color: AppPalette.parchment,
                     ),
                   ),
                 ),
@@ -387,7 +413,8 @@ class _GamePageState extends State<GamePage> {
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     minimumSize: const Size(double.infinity, 60),
-                    backgroundColor: Colors.red,
+                    backgroundColor: AppPalette.mutedBrown,
+                    foregroundColor: AppPalette.parchment,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
                   onPressed: () {
@@ -402,6 +429,7 @@ class _GamePageState extends State<GamePage> {
                       fontSize: 18,
                       fontFamily: 'Open Sans',
                       fontWeight: FontWeight.w600,
+                      color: AppPalette.parchment,
                     ),
                   ),
                 ),
@@ -419,13 +447,14 @@ class _GamePageState extends State<GamePage> {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        backgroundColor: Colors.red,
+        backgroundColor: AppPalette.archiveSurface,
         title: Text(
           l10n.game,
           style: const TextStyle(
             fontFamily: 'Centro',
             fontWeight: FontWeight.w600,
             fontSize: 16,
+            color: AppPalette.parchment,
           ),
         ),
         leading: _currentMode != GameMode.selection
@@ -445,9 +474,7 @@ class _GamePageState extends State<GamePage> {
               )
             : null,
       ),
-      body: Column(
-        children: children,
-      ),
+      body: Column(children: children),
     );
   }
 
@@ -465,8 +492,6 @@ class _GamePageState extends State<GamePage> {
         ),
       );
     }
-
-    final String correctLemmaId = _listenEntry!['lemma_id'].toString();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -487,7 +512,8 @@ class _GamePageState extends State<GamePage> {
             children: [
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
+                  backgroundColor: AppPalette.mutedBrown,
+                  foregroundColor: AppPalette.parchment,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 24,
                     vertical: 16,
@@ -501,9 +527,16 @@ class _GamePageState extends State<GamePage> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.play_arrow_rounded, size: 24),
+                    const Icon(
+                      Icons.play_arrow_rounded,
+                      size: 24,
+                      color: AppPalette.parchment,
+                    ),
                     const SizedBox(width: 8),
-                    Text(l10n.listen),
+                    Text(
+                      l10n.listen,
+                      style: const TextStyle(color: AppPalette.parchment),
+                    ),
                   ],
                 ),
               ),
@@ -524,17 +557,19 @@ class _GamePageState extends State<GamePage> {
                 onPressed: _listenAnswerIsCorrect == true
                     ? null
                     : () {
-                        final isSelected =
-                            choice['lemma_id'].toString() == correctLemmaId;
-                        if (_selectedListenId == choice['lemma_id']) {
+                        final selectedId = choice['lemma_id'].toString();
+                        final correctId = _listenEntry!['lemma_id'].toString();
+
+                        if (_selectedListenId == selectedId) {
                           return;
                         }
+
                         if (!mounted) return;
                         setState(() {
-                          _selectedListenId = choice['lemma_id'];
-                          _listenAnswerIsCorrect = isSelected;
+                          _selectedListenId = selectedId;
+                          _listenAnswerIsCorrect = selectedId == correctId;
                         });
-                        if (isSelected) {
+                        if (_listenAnswerIsCorrect == true) {
                           _listenScore++;
                           if (_listenScore > _listenBestScore) {
                             _saveListenBestScore(_listenScore);
@@ -548,7 +583,7 @@ class _GamePageState extends State<GamePage> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(l10n.wrongTryAgain),
-                              backgroundColor: Colors.red,
+                              backgroundColor: AppPalette.brickRed,
                             ),
                           );
                           _playEntryAudio(_listenEntry!);
@@ -559,6 +594,7 @@ class _GamePageState extends State<GamePage> {
                   style: const TextStyle(
                     fontFamily: 'Open Sans',
                     fontWeight: FontWeight.w600,
+                    color: AppPalette.parchment,
                   ),
                 ),
               ),
@@ -575,6 +611,7 @@ class _GamePageState extends State<GamePage> {
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
                       fontFamily: 'Open Sans',
+                      color: AppPalette.parchment,
                     ),
                   ),
                   Text(
@@ -583,6 +620,7 @@ class _GamePageState extends State<GamePage> {
                       fontWeight: FontWeight.w700,
                       fontSize: 24,
                       fontFamily: 'Open Sans',
+                      color: AppPalette.parchment,
                     ),
                   ),
                 ],
@@ -595,6 +633,7 @@ class _GamePageState extends State<GamePage> {
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
                       fontFamily: 'Open Sans',
+                      color: AppPalette.parchment,
                     ),
                   ),
                   Text(
@@ -603,6 +642,7 @@ class _GamePageState extends State<GamePage> {
                       fontWeight: FontWeight.w700,
                       fontSize: 24,
                       fontFamily: 'Open Sans',
+                      color: AppPalette.parchment,
                     ),
                   ),
                 ],
@@ -629,76 +669,12 @@ class _GamePageState extends State<GamePage> {
       );
     }
 
-    final Map<String, dynamic> leftEntryMap = {};
-    for (final entry in _matchEntries) {
-      leftEntryMap[entry['lemma'].toString()] = entry;
-    }
-
     final int totalPairs = 5;
     final int matchedPairs = _matchedIds.length;
     final bool allMatched = matchedPairs == totalPairs;
 
     if (allMatched) {
-      if (_matchTimer != null) {
-        _matchTimer!.cancel();
-        _matchTimer = null;
-      }
-
-      _saveMatchBestTime(_matchElapsed);
-
-      Future.delayed(const Duration(milliseconds: 500), () {
-        if (!mounted) return;
-        showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: Text(
-                l10n.matchCompleted,
-                style: const TextStyle(
-                  fontFamily: 'Centro',
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '${l10n.bestTime}: $_matchElapsed',
-                    style: const TextStyle(fontFamily: 'Open Sans'),
-                  ),
-                  Text(
-                    '${l10n.bestTime}: ${_bestMatchTimeSeconds > 0 ? Duration(seconds: _bestMatchTimeSeconds) : l10n.noMatch}',
-                    style: const TextStyle(fontFamily: 'Open Sans'),
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    _startMatchRound();
-                  },
-                  child: Text(l10n.playAgain),
-                ),
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    if (_matchTimer != null) {
-                      _matchTimer!.cancel();
-                    }
-                    setState(() {
-                      _currentMode = GameMode.selection;
-                    });
-                  },
-                  child: Text(l10n.backToGames),
-                ),
-              ],
-            );
-          },
-        );
-      });
-
+      _completeMatchRound();
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -714,16 +690,6 @@ class _GamePageState extends State<GamePage> {
                   fontFamily: 'Open Sans',
                 ),
               ),
-              const SizedBox(height: 16),
-              Text(
-                '${l10n.bestTime}: $_matchElapsed',
-                style: const TextStyle(fontSize: 16, fontFamily: 'Open Sans'),
-              ),
-              if (_bestMatchTimeSeconds > 0)
-                Text(
-                  '${l10n.bestTime}: ${Duration(seconds: _bestMatchTimeSeconds)}',
-                  style: const TextStyle(fontSize: 16, fontFamily: 'Open Sans'),
-                ),
             ],
           ),
         ),
@@ -735,45 +701,57 @@ class _GamePageState extends State<GamePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            l10n.searchMode,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              fontFamily: 'Open Sans',
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Text(
+              l10n.game,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                fontFamily: 'Open Sans',
+              ),
             ),
           ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '${l10n.play}: $matchedPairs ${l10n.back} $totalPairs',
-                style: const TextStyle(fontFamily: 'Open Sans'),
-              ),
-              Text(
-                '${l10n.bestTime}: $_matchElapsed',
-                style: const TextStyle(fontFamily: 'Open Sans'),
-              ),
-              if (_bestMatchTimeSeconds > 0)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Wrap(
+              spacing: 16,
+              runSpacing: 8,
+              alignment: WrapAlignment.spaceBetween,
+              children: [
                 Text(
-                  '${l10n.bestTime}: ${Duration(seconds: _bestMatchTimeSeconds)}',
+                  '${l10n.pairsMatched}: '
+                  '$matchedPairs / $totalPairs',
                   style: const TextStyle(fontFamily: 'Open Sans'),
                 ),
-            ],
+                Text(
+                  '${l10n.elapsedTime}: '
+                  '${_formatDuration(_matchElapsed)}',
+                  style: const TextStyle(fontFamily: 'Open Sans'),
+                ),
+                if (_bestMatchTimeSeconds > 0)
+                  Text(
+                    '${l10n.bestTime}: '
+                    '${_formatDuration(Duration(seconds: _bestMatchTimeSeconds))}',
+                    style: const TextStyle(fontFamily: 'Open Sans'),
+                  ),
+              ],
+            ),
           ),
           const SizedBox(height: 24),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Карельское',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontFamily: 'Open Sans',
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  l10n.karelianColumn,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontFamily: 'Open Sans',
+                  ),
                 ),
               ),
-              const SizedBox(height: 8),
               for (int i = 0; i < _leftCards.length; i++)
                 if (!_matchedIds.contains(_leftCards[i]['lemma_id'].toString()))
                   Padding(
@@ -781,20 +759,17 @@ class _GamePageState extends State<GamePage> {
                     child: _buildMatchCard(
                       text: _leftCards[i]['lemma'].toString(),
                       onTap: () {
-                        if (_isCheckingMatch) return;
-                        setState(() {
-                          if (_selectedLeftId == _leftCards[i]['lemma_id']) {
-                            _selectedLeftId = null;
-                          } else {
-                            _selectedLeftId = _leftCards[i]['lemma_id'];
-                            _selectedRightId = null;
-                          }
-                        });
-                        _checkMatch(leftEntryMap);
+                        _selectLeftCard(_leftCards[i]);
                       },
-                      isSelected: _selectedLeftId == _leftCards[i]['lemma_id'],
-                      isMatched: false,
-                      isWrong: false,
+                      isSelected:
+                          _selectedLeftId ==
+                          _leftCards[i]['lemma_id'].toString(),
+                      isMatched: _matchedIds.contains(
+                        _leftCards[i]['lemma_id'].toString(),
+                      ),
+                      isWrong:
+                          _wrongLeftId == _leftCards[i]['lemma_id'].toString(),
+                      alignment: Alignment.centerLeft,
                     ),
                   ),
             ],
@@ -803,14 +778,16 @@ class _GamePageState extends State<GamePage> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Перевод',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontFamily: 'Open Sans',
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  l10n.translationColumn,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontFamily: 'Open Sans',
+                  ),
                 ),
               ),
-              const SizedBox(height: 8),
               for (int i = 0; i < _rightCards.length; i++)
                 if (!_matchedIds.contains(
                   _rightCards[i]['lemma_id'].toString(),
@@ -820,21 +797,18 @@ class _GamePageState extends State<GamePage> {
                     child: _buildMatchCard(
                       text: _rightCards[i]['meaning_text'].toString(),
                       onTap: () {
-                        if (_isCheckingMatch) return;
-                        setState(() {
-                          if (_selectedRightId == _rightCards[i]['lemma_id']) {
-                            _selectedRightId = null;
-                          } else {
-                            _selectedRightId = _rightCards[i]['lemma_id'];
-                            _selectedLeftId = null;
-                          }
-                        });
-                        _checkMatch(leftEntryMap);
+                        _selectRightCard(_rightCards[i]);
                       },
                       isSelected:
-                          _selectedRightId == _rightCards[i]['lemma_id'],
-                      isMatched: false,
-                      isWrong: false,
+                          _selectedRightId ==
+                          _rightCards[i]['lemma_id'].toString(),
+                      isMatched: _matchedIds.contains(
+                        _rightCards[i]['lemma_id'].toString(),
+                      ),
+                      isWrong:
+                          _wrongRightId ==
+                          _rightCards[i]['lemma_id'].toString(),
+                      alignment: Alignment.centerRight,
                     ),
                   ),
             ],
@@ -844,45 +818,138 @@ class _GamePageState extends State<GamePage> {
     );
   }
 
-  void _checkMatch(Map<String, dynamic> leftEntryMap) {
-    if (_selectedLeftId == null || _selectedRightId == null) return;
+  void _selectLeftCard(Map<String, dynamic> entry) {
+    final id = entry['lemma_id'].toString();
 
-    final String? leftId = _selectedLeftId;
-    final String? rightId = _selectedRightId;
+    if (_isCheckingMatch || _matchedIds.contains(id)) {
+      return;
+    }
 
-    if (leftId == null || rightId == null) return;
+    setState(() {
+      _selectedLeftId = _selectedLeftId == id ? null : id;
+    });
+
+    _checkMatch();
+  }
+
+  void _selectRightCard(Map<String, dynamic> entry) {
+    final id = entry['lemma_id'].toString();
+
+    if (_isCheckingMatch || _matchedIds.contains(id)) {
+      return;
+    }
+
+    setState(() {
+      _selectedRightId = _selectedRightId == id ? null : id;
+    });
+
+    _checkMatch();
+  }
+
+  Future<void> _checkMatch() async {
+    final leftId = _selectedLeftId;
+    final rightId = _selectedRightId;
+
+    if (leftId == null || rightId == null || _isCheckingMatch) {
+      return;
+    }
 
     setState(() {
       _isCheckingMatch = true;
     });
 
-    Future.delayed(const Duration(milliseconds: 300), () {
-      if (!mounted) return;
+    await Future<void>.delayed(const Duration(milliseconds: 350));
 
-      if (leftId == rightId) {
-        setState(() {
-          _matchedIds.add(leftId);
-          _selectedLeftId = null;
-          _selectedRightId = null;
-          _isCheckingMatch = false;
-        });
-      } else {
-        _showMatchError(leftId, rightId);
+    if (!mounted) {
+      return;
+    }
+
+    if (leftId == rightId) {
+      setState(() {
+        _matchedIds.add(leftId);
+        _selectedLeftId = null;
+        _selectedRightId = null;
+        _isCheckingMatch = false;
+      });
+
+      if (_matchedIds.length == _matchEntries.length) {
+        await _completeMatchRound();
       }
-    });
-  }
+      return;
+    }
 
-  void _showMatchError(String leftId, String rightId) {
     setState(() {
+      _wrongLeftId = leftId;
+      _wrongRightId = rightId;
       _isCheckingMatch = false;
     });
 
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (!mounted) return;
-      setState(() {
-        _selectedLeftId = null;
-        _selectedRightId = null;
-      });
+    await Future<void>.delayed(const Duration(milliseconds: 500));
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _wrongLeftId = null;
+      _wrongRightId = null;
+      _selectedLeftId = null;
+      _selectedRightId = null;
     });
+  }
+
+  Future<void> _completeMatchRound() async {
+    if (_isMatchCompleted) {
+      return;
+    }
+
+    _isMatchCompleted = true;
+    _matchTimer?.cancel();
+
+    await _saveMatchBestTime(_matchElapsed);
+
+    if (!mounted) {
+      return;
+    }
+
+    final l10n = AppLocalizations.of(context);
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(
+            l10n.matchCompleted,
+            style: const TextStyle(
+              fontFamily: 'Centro',
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          content: Text(
+            '${l10n.elapsedTime}: '
+            '${_formatDuration(_matchElapsed)}',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                _startMatchRound();
+              },
+              child: Text(l10n.playAgain),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                setState(() {
+                  _currentMode = GameMode.selection;
+                });
+              },
+              child: Text(l10n.backToGames),
+            ),
+          ],
+        );
+      },
+    );
   }
 }

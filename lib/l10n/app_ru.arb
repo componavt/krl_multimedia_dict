@@ -39,5 +39,9 @@
   "meanings": "значения",
   "aboutDescription": "Приложение аудио-словаря карельского языка ливвиковского наречия.",
   "dictionarySource": "Данные взяты с сайта:",
-  "versionLabel": "Версия"
+  "versionLabel": "Версия",
+  "pairsMatched": "Собрано пар",
+  "elapsedTime": "Время",
+  "karelianColumn": "Карельское",
+  "translationColumn": "Перевод"
 }

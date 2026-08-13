@@ -129,4 +129,16 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get versionLabel => 'Версия';
+
+  @override
+  String get pairsMatched => 'Собрано пар';
+
+  @override
+  String get elapsedTime => 'Время';
+
+  @override
+  String get karelianColumn => 'Карельское';
+
+  @override
+  String get translationColumn => 'Перевод';
 }

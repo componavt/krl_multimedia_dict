@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'app_theme.dart';
 import 'dictionary_home_page.dart';
 import 'l10n/app_localizations.dart';
 import 'locale_controller.dart';
@@ -26,6 +27,7 @@ class DictionaryApp extends StatelessWidget {
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
+          theme: buildAppTheme(),
           home: MyApp(localeController: localeController),
         );
       },

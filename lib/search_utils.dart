@@ -1,8 +1,4 @@
-enum SearchMode {
-  atStart,
-  inside,
-  atEnd,
-}
+enum SearchMode { atStart, inside, atEnd }
 
 class SearchUtils {
   static List<dynamic> filterEntries(

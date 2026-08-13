@@ -129,4 +129,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get versionLabel => 'Version';
+
+  @override
+  String get pairsMatched => 'Matched pairs';
+
+  @override
+  String get elapsedTime => 'Time';
+
+  @override
+  String get karelianColumn => 'Karelian';
+
+  @override
+  String get translationColumn => 'Translation';
 }

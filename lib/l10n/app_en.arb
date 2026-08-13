@@ -39,5 +39,9 @@
   "meanings": "meanings",
   "aboutDescription": "An audio dictionary of the Livvi dialect of the Karelian language.",
   "dictionarySource": "Dictionary data source:",
-  "versionLabel": "Version"
+  "versionLabel": "Version",
+  "pairsMatched": "Matched pairs",
+  "elapsedTime": "Time",
+  "karelianColumn": "Karelian",
+  "translationColumn": "Translation"
 }

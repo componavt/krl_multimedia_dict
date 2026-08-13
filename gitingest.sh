@@ -1,6 +1,6 @@
 #!/bin/sh
 # run from repository root folder: /data/all/projects/git/krl_multimedia_dict
-OUTPUT_FILE="out_gitingest/krl_multimedia_dict_android_v5.md"
+OUTPUT_FILE="out_gitingest/krl_multimedia_dict_android_v7.md"
 
 mkdir -p out_gitingest
 
@@ -17,6 +17,8 @@ gitingest . \
   --include-pattern "android/app/src/main/kotlin/**/*.kt" \
   --include-pattern "android/app/src/main/res/values*/*.xml" \
   --include-pattern "android/app/src/main/res/drawable*/*.xml" \
+  --include-pattern "lib/l10n/*.arb" \
+  --include-pattern "l10n.yaml" \
   --include-pattern "README.md" \
   --exclude-pattern "LICENSE" \
   --exclude-pattern "ios/*" \
