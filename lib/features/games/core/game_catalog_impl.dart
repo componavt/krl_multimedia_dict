@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/services.dart' show rootBundle, AssetManifest;
 
 import 'game_entry.dart';
@@ -11,7 +13,13 @@ class GameCatalogImpl implements GameCatalog {
     await _loadAudioEnabledWordIds();
 
     final jsonString = await rootBundle.loadString('assets/dict.json');
-    final decoded = jsonString as List<dynamic>;
+    final decoded = jsonDecode(jsonString);
+
+    if (decoded is! List) {
+      throw const FormatException(
+        'assets/dict.json must contain a JSON array.',
+      );
+    }
 
     final entries = <GameEntry>[];
     for (final rawEntry in decoded) {

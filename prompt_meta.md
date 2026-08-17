@@ -55,7 +55,8 @@ CLI prompt для Qwen3-Coder-Next должен:
    - требовать писать `not device-verified`, если агент не запускал приложение на реально доступном устройстве/эмуляторе;
    - требовать `flutter analyze` без warning’ов, которые скрыты подавлением lint-правил.
 
-
+Включи следующий блок в итоговый промпт:
+'''
 ============================================================
 TOOL-CALL DISCIPLINE
 ============================================================
@@ -70,3 +71,4 @@ TOOL-CALL DISCIPLINE
 - If a tool validation error occurs, retry once with the exact required schema.
   Do not repeat narration or issue another empty tool call.
 - Prefer several small edits over one large write containing a whole long source file.
+'''

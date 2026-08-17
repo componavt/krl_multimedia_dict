@@ -128,6 +128,38 @@ class ListenGameState {
   bool get isRoundActive =>
       currentRound != null && !isSessionCompleted && !isFeedbackInProgress;
 
+  ListenGameState copyWith({
+    Object? loadError,
+    ListenRound? currentRound,
+    int? score,
+    int? streak,
+    int? bestStreak,
+    String? selectedEntryId,
+    bool? answerIsCorrect,
+    bool? hadWrongAttempt,
+    bool? isFeedbackInProgress,
+    bool? isTargetReplayHighlighted,
+    bool? isCorrectChoiceCelebrating,
+    bool? isSessionCompleted,
+  }) {
+    return ListenGameState._(
+      loadError: loadError ?? this.loadError,
+      currentRound: currentRound ?? this.currentRound,
+      score: score ?? this.score,
+      streak: streak ?? this.streak,
+      bestStreak: bestStreak ?? this.bestStreak,
+      selectedEntryId: selectedEntryId ?? this.selectedEntryId,
+      answerIsCorrect: answerIsCorrect ?? this.answerIsCorrect,
+      hadWrongAttempt: hadWrongAttempt ?? this.hadWrongAttempt,
+      isFeedbackInProgress: isFeedbackInProgress ?? this.isFeedbackInProgress,
+      isTargetReplayHighlighted:
+          isTargetReplayHighlighted ?? this.isTargetReplayHighlighted,
+      isCorrectChoiceCelebrating:
+          isCorrectChoiceCelebrating ?? this.isCorrectChoiceCelebrating,
+      isSessionCompleted: isSessionCompleted ?? this.isSessionCompleted,
+    );
+  }
+
   @override
   String toString() {
     return 'ListenGameState{loadError: $loadError, currentRound: $currentRound, score: $score, streak: $streak, bestStreak: $bestStreak, selectedEntryId: $selectedEntryId, answerIsCorrect: $answerIsCorrect, hadWrongAttempt: $hadWrongAttempt, isFeedbackInProgress: $isFeedbackInProgress, isTargetReplayHighlighted: $isTargetReplayHighlighted, isCorrectChoiceCelebrating: $isCorrectChoiceCelebrating, isSessionCompleted: $isSessionCompleted}';

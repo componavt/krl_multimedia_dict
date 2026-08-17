@@ -300,4 +300,10 @@ class MatchGameController extends ChangeNotifier {
   bool _isMatched(String id) {
     return _matchedPairs.any((p) => p.id == id);
   }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
 }

@@ -51,6 +51,8 @@ class _GamePageState extends State<GamePage> {
 
   @override
   void dispose() {
+    _listenController?.dispose();
+    _matchController?.dispose();
     _audioPlayer.dispose();
     super.dispose();
   }
@@ -162,51 +164,73 @@ class _GamePageState extends State<GamePage> {
     return MatchGameView(controller: controller);
   }
 
-  void _startListenGame(AppLocalizations l10n) async {
-    if (_listenController == null) {
-      final controller = ListenGameController(
+  Future<void> _startListenGame(AppLocalizations l10n) async {
+    try {
+      final controller = _listenController ??= ListenGameController(
         catalog: _catalog,
         audioPlayer: _audioPlayer,
         learningRepository: _learningRepository,
         random: _random,
       );
 
-      _listenController = controller;
+      await controller.startSession();
+
+      if (!mounted) return;
+
+      setState(() {
+        _currentMode = GameId.listen;
+      });
+    } catch (error) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${l10n.gameLoadError}: $error'),
+          backgroundColor: AppPalette.brickRed,
+        ),
+      );
     }
-
-    await _listenController?.startSession();
-
-    if (!mounted) return;
-
-    setState(() {
-      _currentMode = GameId.listen;
-    });
   }
 
-  void _startMatchGame(AppLocalizations l10n) async {
-    if (_matchController == null) {
-      final controller = MatchGameController(
+  Future<void> _startMatchGame(AppLocalizations l10n) async {
+    try {
+      final controller = _matchController ??= MatchGameController(
         catalog: _catalog,
         audioPlayer: _audioPlayer,
         learningRepository: _learningRepository,
         random: _random,
       );
 
-      _matchController = controller;
+      await controller.startRound();
+
+      if (!mounted) return;
+
+      setState(() {
+        _currentMode = GameId.match;
+      });
+    } catch (error) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${l10n.gameLoadError}: $error'),
+          backgroundColor: AppPalette.brickRed,
+        ),
+      );
     }
-
-    await _matchController?.startRound();
-
-    if (!mounted) return;
-
-    setState(() {
-      _currentMode = GameId.match;
-    });
   }
 
-  void _stopCurrentGameAndReturn() {
+  Future<void> _stopCurrentGameAndReturn() async {
+    await _audioPlayer.stop();
+
+    _listenController?.dispose();
+    _matchController?.dispose();
+
     _listenController = null;
     _matchController = null;
+
+    if (!mounted) return;
+
     setState(() {
       _currentMode = GameId.selection;
     });

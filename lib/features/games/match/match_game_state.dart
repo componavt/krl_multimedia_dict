@@ -190,6 +190,40 @@ class MatchGameState {
   bool get isLoading => currentRound == null && !isError;
   bool get allMatched => matchedPairs.length == 5;
 
+  MatchGameState copyWith({
+    Object? loadError,
+    MatchRound? currentRound,
+    List<GameEntry>? leftCards,
+    List<GameEntry>? rightCards,
+    List<MatchedPair>? matchedPairs,
+    String? selectedLeftId,
+    String? selectedRightId,
+    String? wrongLeftId,
+    String? wrongRightId,
+    bool? isCheckingMatch,
+    DateTime? startTime,
+    Duration? elapsedTime,
+    int? bestTimeSeconds,
+    String? hintEntryId,
+  }) {
+    return MatchGameState._(
+      loadError: loadError ?? this.loadError,
+      currentRound: currentRound ?? this.currentRound,
+      leftCards: leftCards ?? this.leftCards,
+      rightCards: rightCards ?? this.rightCards,
+      matchedPairs: matchedPairs ?? this.matchedPairs,
+      selectedLeftId: selectedLeftId ?? this.selectedLeftId,
+      selectedRightId: selectedRightId ?? this.selectedRightId,
+      wrongLeftId: wrongLeftId ?? this.wrongLeftId,
+      wrongRightId: wrongRightId ?? this.wrongRightId,
+      isCheckingMatch: isCheckingMatch ?? this.isCheckingMatch,
+      startTime: startTime ?? this.startTime,
+      elapsedTime: elapsedTime ?? this.elapsedTime,
+      bestTimeSeconds: bestTimeSeconds ?? this.bestTimeSeconds,
+      hintEntryId: hintEntryId ?? this.hintEntryId,
+    );
+  }
+
   @override
   String toString() {
     return 'MatchGameState{loadError: $loadError, currentRound: $currentRound, matchedPairs: $matchedPairs, selectedLeftId: $selectedLeftId, selectedRightId: $selectedRightId, isCheckingMatch: $isCheckingMatch, allMatched: $allMatched, elapsedTime: $elapsedTime, bestTimeSeconds: $bestTimeSeconds}';
