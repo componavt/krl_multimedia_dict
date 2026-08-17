@@ -8,6 +8,7 @@ import 'widgets/match_choice_card.dart';
 import 'widgets/matched_pairs_footer.dart';
 import 'widgets/match_status_panel.dart';
 import '../core/game_entry.dart';
+import '../core/game_models.dart';
 
 class MatchGameView extends StatefulWidget {
   const MatchGameView({super.key, required this.controller});
@@ -211,7 +212,7 @@ class _MatchGameViewState extends State<MatchGameView> {
               if (isLeftSide) {
                 return MatchChoiceCard(
                   gameEntry: card,
-                  displayField: 'lemma',
+                  column: MatchCardColumn.karelian,
                   onTap: () {
                     widget.controller.selectLeft(card);
                   },
@@ -223,7 +224,7 @@ class _MatchGameViewState extends State<MatchGameView> {
               } else {
                 return MatchChoiceCard(
                   gameEntry: card,
-                  displayField: 'meaning',
+                  column: MatchCardColumn.russian,
                   onTap: () {
                     widget.controller.selectRight(card);
                   },

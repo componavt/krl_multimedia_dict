@@ -31,7 +31,6 @@ class ListenGameController extends ChangeNotifier {
   int _streak = 0;
   int _bestStreak = 0;
   bool _hadWrongAttempt = false;
-  DateTime _lastChoiceTime = DateTime.now();
 
   ListenGameState _currentState = ListenGameState.initial();
 
@@ -74,11 +73,9 @@ class ListenGameController extends ChangeNotifier {
 
   Future<void> choose(GameEntry entry) async {
     if (_currentState.isFeedbackInProgress ||
-        _currentState.answerIsCorrect == true) {
+        _currentState.selectedEntryId != null) {
       return;
     }
-
-    _lastChoiceTime = DateTime.now();
 
     if (entry.lemmaId == _currentState.currentRound!.target.lemmaId) {
       await _handleCorrect(entry);
@@ -149,6 +146,8 @@ class ListenGameController extends ChangeNotifier {
     _streak = 0;
     _hadWrongAttempt = true;
 
+    final startTime = DateTime.now();
+
     _currentState = _currentState.copyWith(
       score: _score,
       streak: _streak,
@@ -164,16 +163,12 @@ class ListenGameController extends ChangeNotifier {
 
     await audioPlayer.playAndWait(entry.lemmaId);
 
-    _currentState = _currentState.copyWith(
-      isTargetReplayHighlighted: true,
-      isFeedbackInProgress: false,
-      isCorrectChoiceCelebrating: false,
-    );
+    _currentState = _currentState.copyWith(isTargetReplayHighlighted: true);
     notifyListeners();
 
     await audioPlayer.playAndWait(_currentState.currentRound!.target.lemmaId);
 
-    final elapsed = DateTime.now().difference(_lastChoiceTime);
+    final elapsed = DateTime.now().difference(startTime);
     final remaining = _minimumTargetSheenDuration - elapsed;
 
     if (remaining > Duration.zero) {

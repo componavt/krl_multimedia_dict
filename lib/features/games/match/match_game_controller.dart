@@ -29,6 +29,7 @@ class MatchGameController extends ChangeNotifier {
   MatchGameState _state = MatchGameState.loading();
   MatchRound? _currentRound;
   final List<MatchedPair> _matchedPairs = <MatchedPair>[];
+  final Set<String> _matchedEntryIds = <String>{};
   DateTime? _startTime;
   Timer? _timer;
   int _bestTimeSeconds = 0;
@@ -113,9 +114,11 @@ class MatchGameController extends ChangeNotifier {
 
     _currentRound = round;
     _matchedPairs.clear();
+    _matchedEntryIds.clear();
     _state = MatchGameState.withRound(
       round: round,
       matchedPairs: _matchedPairs,
+      matchedEntryIds: _matchedEntryIds,
       bestTimeSeconds: _bestTimeSeconds,
       elapsedTime: Duration.zero,
     );
@@ -132,6 +135,7 @@ class MatchGameController extends ChangeNotifier {
         _state = MatchGameState.withElapsed(
           round: _currentRound!,
           matchedPairs: _matchedPairs,
+          matchedEntryIds: _matchedEntryIds,
           elapsedTime: newElapsedTime,
         );
         notifyListeners();
@@ -144,7 +148,7 @@ class MatchGameController extends ChangeNotifier {
   Duration get _elapsedTime => _state.elapsedTime;
 
   void selectLeft(GameEntry entry) {
-    if (_state.isCheckingMatch || _isMatched(entry.lemmaId)) {
+    if (_state.isFeedbackInProgress || _isMatched(entry.lemmaId)) {
       return;
     }
 
@@ -155,7 +159,8 @@ class MatchGameController extends ChangeNotifier {
     _state = MatchGameState.withSelection(
       round: _currentRound!,
       matchedPairs: _matchedPairs,
-      selectedLeftId: selectedId ?? '',
+      matchedEntryIds: _matchedEntryIds,
+      selectedLeftId: selectedId,
       leftCards: _currentRound!.leftCards,
       rightCards: _currentRound!.rightCards,
       elapsedTime: _elapsedTime,
@@ -166,7 +171,7 @@ class MatchGameController extends ChangeNotifier {
   }
 
   void selectRight(GameEntry entry) {
-    if (_state.isCheckingMatch || _isMatched(entry.lemmaId)) {
+    if (_state.isFeedbackInProgress || _isMatched(entry.lemmaId)) {
       return;
     }
 
@@ -177,7 +182,8 @@ class MatchGameController extends ChangeNotifier {
     _state = MatchGameState.withSelection(
       round: _currentRound!,
       matchedPairs: _matchedPairs,
-      selectedRightId: selectedId ?? '',
+      matchedEntryIds: _matchedEntryIds,
+      selectedRightId: selectedId,
       leftCards: _currentRound!.leftCards,
       rightCards: _currentRound!.rightCards,
       elapsedTime: _elapsedTime,
@@ -192,48 +198,40 @@ class MatchGameController extends ChangeNotifier {
   }
 
   Future<void> _checkMatch() async {
-    final leftId = _state.selectedLeftId;
-    final rightId = _state.selectedRightId;
+    final leftEntry = _currentRound!.leftCards.firstWhere(
+      (c) => c.lemmaId == _state.selectedLeftId,
+      orElse: () => _currentRound!.leftCards.first,
+    );
+    final rightEntry = _currentRound!.rightCards.firstWhere(
+      (c) => c.lemmaId == _state.selectedRightId,
+      orElse: () => _currentRound!.rightCards.first,
+    );
 
-    if (leftId == null || rightId == null || _state.isCheckingMatch) {
+    if (_state.selectedLeftId == null ||
+        _state.selectedRightId == null ||
+        _state.isFeedbackInProgress) {
       return;
     }
 
-    _state = MatchGameState.withSelection(
-      round: _currentRound!,
-      matchedPairs: _matchedPairs,
-      selectedLeftId: leftId,
-      selectedRightId: rightId,
-      leftCards: _currentRound!.leftCards,
-      rightCards: _currentRound!.rightCards,
-      elapsedTime: _elapsedTime,
-    );
-    notifyListeners();
-
     await Future<void>.delayed(const Duration(milliseconds: 350));
 
-    if (leftId == rightId) {
-      final leftEntry = _currentRound!.leftCards.firstWhere(
-        (c) => c.lemmaId == leftId,
-      );
-      final rightEntry = _currentRound!.rightCards.firstWhere(
-        (c) => c.lemmaId == rightId,
-      );
+    if (leftEntry.lemmaId == rightEntry.lemmaId) {
+      _matchedEntryIds.add(leftEntry.lemmaId);
 
       _matchedPairs.add(
         MatchedPair(
-          id: leftId,
+          id: leftEntry.lemmaId,
           lemma: leftEntry.lemma,
           meaning: rightEntry.meaning,
         ),
       );
 
-      await learningRepository.registerMatchSuccess(lemmaId: leftId);
+      await learningRepository.registerMatchSuccess(lemmaId: leftEntry.lemmaId);
 
       if (_currentRound!.entries.any(
-        (e) => e.lemmaId == leftId && e.hasAudio,
+        (e) => e.lemmaId == leftEntry.lemmaId && e.hasAudio,
       )) {
-        await audioPlayer.play(leftId);
+        await audioPlayer.play(leftEntry.lemmaId);
       }
 
       if (_matchedPairs.length == _totalPairs) {
@@ -246,6 +244,7 @@ class MatchGameController extends ChangeNotifier {
 
         _state = MatchGameState.completed(
           matchedPairs: _matchedPairs,
+          matchedEntryIds: _matchedEntryIds,
           elapsedTime: elapsedTime,
           bestTimeSeconds: _bestTimeSeconds,
         );
@@ -254,9 +253,10 @@ class MatchGameController extends ChangeNotifier {
         _state = MatchGameState.withMatchResult(
           round: _currentRound!,
           matchedPairs: _matchedPairs,
+          matchedEntryIds: _matchedEntryIds,
           leftCards: _currentRound!.leftCards,
           rightCards: _currentRound!.rightCards,
-          matchedId: leftId,
+          matchedId: leftEntry.lemmaId,
           startTime: _startTime!,
           elapsedTime: _elapsedTime,
         );
@@ -269,12 +269,13 @@ class MatchGameController extends ChangeNotifier {
       _state = MatchGameState.withWrongMatch(
         round: _currentRound!,
         matchedPairs: _matchedPairs,
+        matchedEntryIds: _matchedEntryIds,
         leftCards: _currentRound!.leftCards,
         rightCards: _currentRound!.rightCards,
-        wrongLeftId: leftId,
-        wrongRightId: rightId,
-        selectedLeftId: leftId,
-        selectedRightId: rightId,
+        wrongLeftId: leftEntry.lemmaId,
+        wrongRightId: rightEntry.lemmaId,
+        selectedLeftId: leftEntry.lemmaId,
+        selectedRightId: rightEntry.lemmaId,
         elapsedTime: _elapsedTime,
       );
       notifyListeners();
@@ -288,6 +289,7 @@ class MatchGameController extends ChangeNotifier {
     _state = MatchGameState.feedbackComplete(
       round: _currentRound!,
       matchedPairs: _matchedPairs,
+      matchedEntryIds: _matchedEntryIds,
       leftCards: _currentRound!.leftCards,
       rightCards: _currentRound!.rightCards,
       hintEntryId: _currentRound!.hintEntryId,

@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../../../../app_theme.dart';
 import '../../core/game_entry.dart';
+import '../../core/game_models.dart';
 
 class MatchChoiceCard extends StatelessWidget {
   const MatchChoiceCard({
     super.key,
     required this.gameEntry,
-    required this.displayField,
+    required this.column,
     required this.onTap,
     required this.isSelected,
     required this.isMatched,
@@ -17,7 +18,7 @@ class MatchChoiceCard extends StatelessWidget {
   });
 
   final GameEntry gameEntry;
-  final String displayField;
+  final MatchCardColumn column;
   final VoidCallback? onTap;
   final bool isSelected;
   final bool isMatched;
@@ -71,10 +72,12 @@ class MatchChoiceCard extends StatelessWidget {
   }
 
   String _getDisplayText() {
-    if (displayField == 'lemma') {
-      return gameEntry.lemma;
+    switch (column) {
+      case MatchCardColumn.karelian:
+        return gameEntry.lemma;
+      case MatchCardColumn.russian:
+        return gameEntry.meaning;
     }
-    return gameEntry.meaning;
   }
 
   Color get _cardColor {

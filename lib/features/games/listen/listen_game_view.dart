@@ -240,34 +240,43 @@ class _ListenGameViewState extends State<ListenGameView>
             ),
           ),
           const SizedBox(height: 24),
-          Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 12,
-            runSpacing: 12,
-            children: round.choices.map((choice) {
-              final isSelected = state.selectedEntryId == choice.lemmaId;
-              final isWrongChoice =
-                  state.answerIsCorrect == false && isSelected;
-              final isCorrectChoice =
-                  state.answerIsCorrect == true && isSelected;
-              final shouldShowLemma = isWrongChoice || isCorrectChoice;
+          IgnorePointer(
+            ignoring: state.isFeedbackInProgress,
+            child: Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 12,
+              runSpacing: 12,
+              children: round.choices.map((choice) {
+                final isSelected = state.selectedEntryId == choice.lemmaId;
+                final isCorrectChoice =
+                    state.answerIsCorrect == true && isSelected;
+                final isWrongChoice =
+                    state.answerIsCorrect == false && isSelected;
+                final shouldShowLemma = isWrongChoice || isCorrectChoice;
 
-              return ListenChoiceCard(
-                key: Key('choice-${choice.lemmaId}'),
-                gameEntry: choice,
-                color: _listenChoiceColor(choice, state),
-                isSelected: isSelected,
-                isCorrect: isCorrectChoice,
-                showLemma: shouldShowLemma,
-                onPressed: state.isRoundActive
-                    ? () {
-                        widget.controller.choose(choice);
-                      }
-                    : null,
-                celebrationAnimation: _correctChoiceController,
-                sheenAnimation: _targetReplaySheenController,
-              );
-            }).toList(),
+                return ListenChoiceCard(
+                  key: Key('choice-${choice.lemmaId}'),
+                  gameEntry: choice,
+                  color: _listenChoiceColor(choice, state),
+                  isSelected: isSelected,
+                  isCorrect: isCorrectChoice,
+                  showLemma: shouldShowLemma,
+                  sheenAnimation: _sheenAnimationForChoice(
+                    state,
+                    choice,
+                    _targetReplaySheenController,
+                  ),
+                  celebrationAnimation: isCorrectChoice
+                      ? _correctChoiceController
+                      : _correctChoiceController,
+                  onTap: state.isRoundActive
+                      ? () {
+                          widget.controller.choose(choice);
+                        }
+                      : null,
+                );
+              }).toList(),
+            ),
           ),
           const SizedBox(height: 24),
           Row(
@@ -367,5 +376,19 @@ class _ListenGameViewState extends State<ListenGameView>
     if (progress >= 1.0) return AppPalette.mossGreen;
     if (progress >= 0.7) return AppPalette.amber;
     return AppPalette.parchment;
+  }
+
+  Animation<double> _sheenAnimationForChoice(
+    ListenGameState state,
+    GameEntry choice,
+    AnimationController controller,
+  ) {
+    if (state.answerIsCorrect == true &&
+        choice.lemmaId == state.selectedEntryId) {
+      return state.isCorrectChoiceCelebrating
+          ? _correctChoiceController
+          : _correctChoiceController;
+    }
+    return AlwaysStoppedAnimation<double>(0);
   }
 }

@@ -1,3 +1,5 @@
+enum MatchCardColumn { karelian, russian }
+
 class MatchedPair {
   const MatchedPair({
     required this.id,

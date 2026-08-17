@@ -123,6 +123,8 @@ class _DetailPageState extends State<DetailPage> {
             } catch (error) {
               if (!mounted) return;
 
+              if (!context.mounted) return;
+
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text('${l10n.audioPlaybackError}: $error'),
@@ -344,6 +346,8 @@ class _MyAppState extends State<MyApp> {
     await Future<void>.delayed(const Duration(milliseconds: 180));
 
     if (!mounted) return;
+
+    if (!context.mounted) return;
 
     await showModalBottomSheet<void>(
       context: context,

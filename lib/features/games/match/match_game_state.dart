@@ -9,11 +9,13 @@ class MatchGameState {
     this.leftCards,
     this.rightCards,
     this.matchedPairs = const [],
+    this.matchedEntryIds = const <String>{},
     this.selectedLeftId,
     this.selectedRightId,
     this.wrongLeftId,
     this.wrongRightId,
     this.isCheckingMatch = false,
+    this.isFeedbackInProgress = false,
     this.startTime,
     this.elapsedTime = Duration.zero,
     this.bestTimeSeconds = 0,
@@ -31,6 +33,7 @@ class MatchGameState {
   factory MatchGameState.withRound({
     required MatchRound round,
     required List<MatchedPair> matchedPairs,
+    required Set<String> matchedEntryIds,
     required int? bestTimeSeconds,
     Duration? elapsedTime,
   }) {
@@ -39,6 +42,7 @@ class MatchGameState {
       leftCards: round.leftCards,
       rightCards: round.rightCards,
       matchedPairs: matchedPairs,
+      matchedEntryIds: matchedEntryIds,
       startTime: DateTime.now(),
       elapsedTime: elapsedTime ?? Duration.zero,
       bestTimeSeconds: bestTimeSeconds ?? 0,
@@ -48,6 +52,7 @@ class MatchGameState {
   factory MatchGameState.withSelection({
     required MatchRound round,
     required List<MatchedPair> matchedPairs,
+    Set<String>? matchedEntryIds,
     String? selectedLeftId,
     String? selectedRightId,
     required List<GameEntry> leftCards,
@@ -58,6 +63,7 @@ class MatchGameState {
     return MatchGameState._(
       currentRound: round,
       matchedPairs: matchedPairs,
+      matchedEntryIds: matchedEntryIds ?? <String>{},
       selectedLeftId: selectedLeftId,
       selectedRightId: selectedRightId,
       leftCards: leftCards,
@@ -71,6 +77,7 @@ class MatchGameState {
   factory MatchGameState.withMatchResult({
     required MatchRound round,
     required List<MatchedPair> matchedPairs,
+    required Set<String> matchedEntryIds,
     required List<GameEntry> leftCards,
     required List<GameEntry> rightCards,
     required String matchedId,
@@ -80,6 +87,7 @@ class MatchGameState {
     return MatchGameState._(
       currentRound: round,
       matchedPairs: matchedPairs,
+      matchedEntryIds: matchedEntryIds,
       leftCards: leftCards,
       rightCards: rightCards,
       selectedLeftId: null,
@@ -93,6 +101,7 @@ class MatchGameState {
   factory MatchGameState.withWrongMatch({
     required MatchRound round,
     required List<MatchedPair> matchedPairs,
+    required Set<String> matchedEntryIds,
     required List<GameEntry> leftCards,
     required List<GameEntry> rightCards,
     required String wrongLeftId,
@@ -105,6 +114,7 @@ class MatchGameState {
     return MatchGameState._(
       currentRound: round,
       matchedPairs: matchedPairs,
+      matchedEntryIds: matchedEntryIds,
       leftCards: leftCards,
       rightCards: rightCards,
       wrongLeftId: wrongLeftId,
@@ -114,12 +124,14 @@ class MatchGameState {
       elapsedTime: elapsedTime ?? Duration.zero,
       hintEntryId: hintEntryId,
       isCheckingMatch: false,
+      isFeedbackInProgress: true,
     );
   }
 
   factory MatchGameState.feedbackComplete({
     required MatchRound round,
     required List<MatchedPair> matchedPairs,
+    required Set<String> matchedEntryIds,
     required List<GameEntry> leftCards,
     required List<GameEntry> rightCards,
     required String? hintEntryId,
@@ -129,12 +141,14 @@ class MatchGameState {
     return MatchGameState._(
       currentRound: round,
       matchedPairs: matchedPairs,
+      matchedEntryIds: matchedEntryIds,
       leftCards: leftCards,
       rightCards: rightCards,
       selectedLeftId: null,
       selectedRightId: null,
       wrongLeftId: null,
       wrongRightId: null,
+      isFeedbackInProgress: false,
       isCheckingMatch: false,
       startTime: DateTime.now(),
       elapsedTime: elapsedTime ?? Duration.zero,
@@ -146,6 +160,7 @@ class MatchGameState {
   factory MatchGameState.withElapsed({
     required MatchRound round,
     required List<MatchedPair> matchedPairs,
+    required Set<String> matchedEntryIds,
     required Duration elapsedTime,
   }) {
     return MatchGameState._(
@@ -153,6 +168,7 @@ class MatchGameState {
       leftCards: round.leftCards,
       rightCards: round.rightCards,
       matchedPairs: matchedPairs,
+      matchedEntryIds: matchedEntryIds,
       elapsedTime: elapsedTime,
       startTime: DateTime.now(),
       hintEntryId: round.hintEntryId,
@@ -161,11 +177,13 @@ class MatchGameState {
 
   factory MatchGameState.completed({
     required List<MatchedPair> matchedPairs,
+    required Set<String> matchedEntryIds,
     required Duration elapsedTime,
     required int? bestTimeSeconds,
   }) {
     return MatchGameState._(
       matchedPairs: matchedPairs,
+      matchedEntryIds: matchedEntryIds,
       elapsedTime: elapsedTime,
       bestTimeSeconds: bestTimeSeconds ?? 0,
     );
@@ -176,11 +194,13 @@ class MatchGameState {
   final List<GameEntry>? leftCards;
   final List<GameEntry>? rightCards;
   final List<MatchedPair> matchedPairs;
+  final Set<String> matchedEntryIds;
   final String? selectedLeftId;
   final String? selectedRightId;
   final String? wrongLeftId;
   final String? wrongRightId;
   final bool isCheckingMatch;
+  final bool isFeedbackInProgress;
   final DateTime? startTime;
   final Duration elapsedTime;
   final int? bestTimeSeconds;
@@ -196,11 +216,13 @@ class MatchGameState {
     List<GameEntry>? leftCards,
     List<GameEntry>? rightCards,
     List<MatchedPair>? matchedPairs,
+    Set<String>? matchedEntryIds,
     String? selectedLeftId,
     String? selectedRightId,
     String? wrongLeftId,
     String? wrongRightId,
     bool? isCheckingMatch,
+    bool? isFeedbackInProgress,
     DateTime? startTime,
     Duration? elapsedTime,
     int? bestTimeSeconds,
@@ -212,11 +234,13 @@ class MatchGameState {
       leftCards: leftCards ?? this.leftCards,
       rightCards: rightCards ?? this.rightCards,
       matchedPairs: matchedPairs ?? this.matchedPairs,
+      matchedEntryIds: matchedEntryIds ?? this.matchedEntryIds,
       selectedLeftId: selectedLeftId ?? this.selectedLeftId,
       selectedRightId: selectedRightId ?? this.selectedRightId,
       wrongLeftId: wrongLeftId ?? this.wrongLeftId,
       wrongRightId: wrongRightId ?? this.wrongRightId,
       isCheckingMatch: isCheckingMatch ?? this.isCheckingMatch,
+      isFeedbackInProgress: isFeedbackInProgress ?? this.isFeedbackInProgress,
       startTime: startTime ?? this.startTime,
       elapsedTime: elapsedTime ?? this.elapsedTime,
       bestTimeSeconds: bestTimeSeconds ?? this.bestTimeSeconds,
@@ -226,6 +250,6 @@ class MatchGameState {
 
   @override
   String toString() {
-    return 'MatchGameState{loadError: $loadError, currentRound: $currentRound, matchedPairs: $matchedPairs, selectedLeftId: $selectedLeftId, selectedRightId: $selectedRightId, isCheckingMatch: $isCheckingMatch, allMatched: $allMatched, elapsedTime: $elapsedTime, bestTimeSeconds: $bestTimeSeconds}';
+    return 'MatchGameState{loadError: $loadError, currentRound: $currentRound, matchedPairs: $matchedPairs, matchedEntryIds: $matchedEntryIds, selectedLeftId: $selectedLeftId, selectedRightId: $selectedRightId, isFeedbackInProgress: $isFeedbackInProgress, isCheckingMatch: $isCheckingMatch, allMatched: $allMatched, elapsedTime: $elapsedTime, bestTimeSeconds: $bestTimeSeconds}';
   }
 }

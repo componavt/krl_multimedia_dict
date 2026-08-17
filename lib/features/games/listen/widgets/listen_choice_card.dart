@@ -12,7 +12,7 @@ class ListenChoiceCard extends StatelessWidget {
     required this.isSelected,
     required this.isCorrect,
     required this.showLemma,
-    required this.onPressed,
+    required this.onTap,
     required this.celebrationAnimation,
     required this.sheenAnimation,
   });
@@ -22,7 +22,7 @@ class ListenChoiceCard extends StatelessWidget {
   final bool isSelected;
   final bool isCorrect;
   final bool showLemma;
-  final VoidCallback? onPressed;
+  final VoidCallback? onTap;
   final Animation<double> celebrationAnimation;
   final Animation<double> sheenAnimation;
 
@@ -43,8 +43,13 @@ class ListenChoiceCard extends StatelessWidget {
                   vertical: 16,
                 ),
                 backgroundColor: color,
+                textStyle: const TextStyle(
+                  fontFamily: 'Open Sans',
+                  fontWeight: FontWeight.w600,
+                  color: AppPalette.parchment,
+                ),
               ),
-              onPressed: onPressed,
+              onPressed: onTap,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -54,21 +59,14 @@ class ListenChoiceCard extends StatelessWidget {
                     softWrap: true,
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontFamily: 'Open Sans',
-                      fontWeight: FontWeight.w600,
-                      color: AppPalette.parchment,
-                    ),
                   ),
                   if (showLemma) ...[
                     const SizedBox(height: 6),
                     Text(
                       gameEntry.lemma,
                       style: const TextStyle(
-                        fontFamily: 'Open Sans',
                         fontWeight: FontWeight.w700,
                         fontSize: 13,
-                        color: AppPalette.parchment,
                         fontStyle: FontStyle.italic,
                       ),
                     ),
