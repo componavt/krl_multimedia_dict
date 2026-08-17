@@ -81,9 +81,8 @@
    "hint": "Hint",
    "hintCharacters": "{count} characters",
    "hintStartsWith": "starts with '{letter}'",
-   "hintPattern": "{pattern}",
-   "wrongChoiceMeaning": "{lemma} means {meaning}",
-   "@wrongChoiceAssociation": {
+    "hintPattern": "{pattern}",
+    "@wrongChoiceAssociation": {
      "description": "Association shown after wrong answer, with lemma and meaning of selected wrong entry separated by em dash",
      "placeholders": {
        "lemma": {},

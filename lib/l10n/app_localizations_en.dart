@@ -235,11 +235,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String wrongChoiceMeaning(Object lemma, Object meaning) {
-    return '$lemma means $meaning';
-  }
-
-  @override
   String wrongChoiceAssociation(Object lemma, Object meaning) {
     return '$lemma — $meaning';
   }

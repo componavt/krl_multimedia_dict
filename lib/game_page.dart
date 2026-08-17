@@ -73,6 +73,8 @@ class _GamePageState extends State<GamePage>
   List<Map<String, dynamic>> _listenChoices = <Map<String, dynamic>>[];
   String? _selectedListenId;
   bool? _listenAnswerIsCorrect;
+  bool _isListenFeedbackInProgress = false;
+  bool _isTargetReplayHighlighted = false;
 
   List<Map<String, dynamic>> _matchEntries = <Map<String, dynamic>>[];
   List<Map<String, dynamic>> _leftCards = <Map<String, dynamic>>[];
@@ -91,6 +93,18 @@ class _GamePageState extends State<GamePage>
   final List<MatchedPair> _matchedPairs = <MatchedPair>[];
 
   static const int _totalListenRounds = 10;
+
+  static const Duration _correctFeedbackDuration =
+      Duration(seconds: 5);
+
+  static const Duration _wrongPairVisibleBeforeTargetReplay =
+      Duration(seconds: 2);
+
+  static const Duration _wrongPairVisibleAfterTargetReplay =
+      Duration(seconds: 3);
+
+  static const Duration _audioPlaybackFallbackDuration =
+      Duration(seconds: 4);
 
   @override
   void initState() {
@@ -214,6 +228,41 @@ class _GamePageState extends State<GamePage>
       setState(() {
         _bestMatchTimeSeconds = seconds;
       });
+    }
+  }
+
+  Future<void> _playEntryAudioAndWait(Map<String, dynamic> entry) async {
+    final lemmaId = entry['lemma_id'].toString();
+
+    await _audioPlayer.stop();
+
+    if (!mounted) return;
+
+    final completion = _audioPlayer.onPlayerComplete.first;
+
+    try {
+      await _audioPlayer.play(
+        AssetSource('audio/$lemmaId.wav'),
+      );
+
+      await completion.timeout(
+        _audioPlaybackFallbackDuration,
+      );
+    } on TimeoutException {
+      // Timeout handled by using fallback duration
+    } catch (error) {
+      if (!mounted) return;
+
+      final l10n = AppLocalizations.of(context);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${l10n.audioPlaybackError}: $error',
+          ),
+          backgroundColor: AppPalette.brickRed,
+        ),
+      );
     }
   }
 
@@ -348,19 +397,21 @@ class _GamePageState extends State<GamePage>
     final lemmaId = correct['lemma_id'].toString();
     _usedEntryIds.add(lemmaId);
 
-    if (!mounted) return;
+     if (!mounted) return;
 
-    setState(() {
-      _listenEntry = correct;
-      _listenChoices = choices;
-      _selectedListenId = null;
-      _listenAnswerIsCorrect = null;
-      _currentRoundHadWrongAttempt = false;
-    });
+     setState(() {
+       _listenEntry = correct;
+       _listenChoices = choices;
+       _selectedListenId = null;
+       _listenAnswerIsCorrect = null;
+       _currentRoundHadWrongAttempt = false;
+       _isListenFeedbackInProgress = false;
+       _isTargetReplayHighlighted = false;
+     });
 
-    if (!mounted) return;
+     if (!mounted) return;
 
-    await _playEntryAudio(correct);
+     await _playEntryAudio(correct);
   }
 
   Future<void> _completeListenSession() async {
@@ -435,6 +486,8 @@ class _GamePageState extends State<GamePage>
       _usedEntryIds.clear();
       _isListenSessionCompleted = false;
       _currentMode = GameMode.selection;
+      _isListenFeedbackInProgress = false;
+      _isTargetReplayHighlighted = false;
     });
   }
 
@@ -644,6 +697,8 @@ class _GamePageState extends State<GamePage>
     _audioPlayer.dispose();
     _matchTimer?.cancel();
     _showAssociationTimer?.cancel();
+    _isListenFeedbackInProgress = false;
+    _isTargetReplayHighlighted = false;
     super.dispose();
   }
 
@@ -897,27 +952,32 @@ class _GamePageState extends State<GamePage>
           ],
         ),
         backgroundColor: AppPalette.mossGreen,
-        duration: const Duration(milliseconds: 1500),
+        duration: _correctFeedbackDuration,
       ),
     );
 
-    _showAssociationTimer?.cancel();
-    _showAssociationTimer = Timer(const Duration(milliseconds: 1500), () {
-      if (!mounted) return;
-      _listenRoundNumber++;
-      if (_listenRoundNumber >= _totalListenRounds) {
-        _isListenSessionCompleted = true;
-        _completeListenSession();
-      } else {
-        _startListenRound();
-      }
-    });
+    await Future<void>.delayed(_correctFeedbackDuration);
+
+    if (!mounted) return;
+
+    _listenRoundNumber++;
+    if (_listenRoundNumber >= _totalListenRounds) {
+      _isListenSessionCompleted = true;
+      _completeListenSession();
+    } else {
+      _startListenRound();
+    }
   }
 
   Future<void> _handleListenWrong() async {
     final selectedId = _selectedListenId;
 
-    if (selectedId == null) {
+    if (selectedId == null || _isListenFeedbackInProgress) {
+      return;
+    }
+
+    final targetEntry = _listenEntry;
+    if (targetEntry == null) {
       return;
     }
 
@@ -928,16 +988,17 @@ class _GamePageState extends State<GamePage>
     final chosenLemma = chosenEntry['lemma'].toString();
     final chosenMeaning = chosenEntry['meaning_text'].toString();
 
-    await _playEntryAudio(_listenEntry!);
+    setState(() {
+      _currentRoundHadWrongAttempt = true;
+      _listenStreak = 0;
+      _isListenFeedbackInProgress = true;
+    });
+
+    await _playEntryAudioAndWait(chosenEntry);
 
     if (!mounted) return;
 
     final l10n = AppLocalizations.of(context);
-
-    setState(() {
-      _currentRoundHadWrongAttempt = true;
-      _listenStreak = 0;
-    });
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -963,15 +1024,45 @@ class _GamePageState extends State<GamePage>
           ],
         ),
         backgroundColor: AppPalette.brickRed,
-        duration: const Duration(seconds: 3),
+        duration: _wrongPairVisibleBeforeTargetReplay +
+            _audioPlaybackFallbackDuration +
+            _wrongPairVisibleAfterTargetReplay,
       ),
     );
 
-    await Future<void>.delayed(const Duration(seconds: 3));
+    await Future<void>.delayed(
+      _wrongPairVisibleBeforeTargetReplay,
+    );
 
     if (!mounted) return;
 
+    setState(() {
+      _isTargetReplayHighlighted = true;
+    });
+
+    await _playEntryAudioAndWait(targetEntry);
+
+    if (!mounted) return;
+
+    setState(() {
+      _isTargetReplayHighlighted = false;
+    });
+
+    await Future<void>.delayed(
+      _wrongPairVisibleAfterTargetReplay,
+    );
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
     _reshuffleListenChoices();
+
+    if (!mounted) return;
+
+    setState(() {
+      _isListenFeedbackInProgress = false;
+    });
   }
 
   void _reshuffleListenChoices() {
@@ -1052,42 +1143,62 @@ class _GamePageState extends State<GamePage>
                   ),
                 ),
               ),
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppPalette.mutedBrown,
-                    foregroundColor: AppPalette.parchment,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 16,
-                    ),
-                  ),
-                  onPressed: () {
-                    if (_listenEntry != null) {
-                      _playEntryAudio(_listenEntry!);
-                    }
-                  },
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.play_arrow_rounded,
-                        size: 24,
-                        color: AppPalette.parchment,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        l10n.listen,
-                        style: const TextStyle(color: AppPalette.parchment),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+             const SizedBox(height: 24),
+             Row(
+               mainAxisAlignment: MainAxisAlignment.center,
+               children: [
+                 AnimatedScale(
+                   scale: _isTargetReplayHighlighted ? 1.06 : 1.0,
+                   duration: const Duration(milliseconds: 180),
+                   curve: Curves.easeOut,
+                   child: AnimatedContainer(
+                     duration: const Duration(milliseconds: 180),
+                     decoration: BoxDecoration(
+                       borderRadius: BorderRadius.circular(10),
+                       boxShadow: _isTargetReplayHighlighted
+                           ? const [
+                               BoxShadow(
+                                 color: AppPalette.amber,
+                                 blurRadius: 12,
+                                 spreadRadius: 1,
+                               ),
+                             ]
+                           : const [],
+                     ),
+                     child: ElevatedButton(
+                       style: ElevatedButton.styleFrom(
+                         backgroundColor: _isTargetReplayHighlighted
+                             ? AppPalette.amber
+                             : AppPalette.mutedBrown,
+                         foregroundColor: _isTargetReplayHighlighted
+                             ? AppPalette.ink
+                             : AppPalette.parchment,
+                       ),
+                       onPressed: _listenEntry == null || _isListenFeedbackInProgress
+                           ? null
+                           : () {
+                               if (_listenEntry != null) {
+                                 _playEntryAudio(_listenEntry!);
+                               }
+                             },
+                       child: Row(
+                         mainAxisSize: MainAxisSize.min,
+                         children: [
+                           const Icon(
+                             Icons.play_arrow_rounded,
+                             size: 24,
+                           ),
+                           const SizedBox(width: 8),
+                           Text(
+                             l10n.listen,
+                           ),
+                         ],
+                       ),
+                     ),
+                   ),
+                 ),
+               ],
+             ),
             const SizedBox(height: 16),
             Text(
               l10n.listenMeaningQuestion,

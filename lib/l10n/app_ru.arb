@@ -81,9 +81,8 @@
    "hint": "Подсказка",
    "hintCharacters": "{count} букв",
    "hintStartsWith": "начинается на '{letter}'",
-   "hintPattern": "{pattern}",
-   "wrongChoiceMeaning": "{lemma} — {meaning}",
-   "@wrongChoiceAssociation": {
+    "hintPattern": "{pattern}",
+    "@wrongChoiceAssociation": {
      "description": "Ассоциация после неверного ответа: лемма и значение выбранной неправильной записи, разделенные тире",
      "placeholders": {
        "lemma": {},

@@ -530,12 +530,6 @@ abstract class AppLocalizations {
   /// **'{pattern}'**
   String hintPattern(Object pattern);
 
-  /// No description provided for @wrongChoiceMeaning.
-  ///
-  /// In en, this message translates to:
-  /// **'{lemma} means {meaning}'**
-  String wrongChoiceMeaning(Object lemma, Object meaning);
-
   /// Association shown after wrong answer, with lemma and meaning of selected wrong entry separated by em dash
   ///
   /// In en, this message translates to:
