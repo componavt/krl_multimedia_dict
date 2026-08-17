@@ -75,6 +75,7 @@ class _GamePageState extends State<GamePage>
   bool? _listenAnswerIsCorrect;
   bool _isListenFeedbackInProgress = false;
   bool _isTargetReplayHighlighted = false;
+  late final AnimationController _targetReplaySheenController;
 
   List<Map<String, dynamic>> _matchEntries = <Map<String, dynamic>>[];
   List<Map<String, dynamic>> _leftCards = <Map<String, dynamic>>[];
@@ -103,12 +104,19 @@ class _GamePageState extends State<GamePage>
   static const Duration _wrongPairVisibleAfterTargetReplay =
       Duration(seconds: 3);
 
+  static const Duration _wrongFeedbackTotalDuration =
+      Duration(seconds: 10);
+
   static const Duration _audioPlaybackFallbackDuration =
       Duration(seconds: 4);
 
   @override
   void initState() {
     super.initState();
+    _targetReplaySheenController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    );
     _initializeGameData();
   }
 
@@ -285,18 +293,14 @@ class _GamePageState extends State<GamePage>
 
   Color _listenChoiceColor(Map<String, dynamic> choice) {
     final choiceId = choice['lemma_id'].toString();
-    final correctId = _listenEntry!['lemma_id'].toString();
+    final selectedId = _selectedListenId;
 
-    if (_listenAnswerIsCorrect == true && choiceId == correctId) {
+    if (_listenAnswerIsCorrect == true && choiceId == selectedId) {
       return AppPalette.mossGreen;
     }
 
-    if (_listenAnswerIsCorrect == false && choiceId == _selectedListenId) {
+    if (_listenAnswerIsCorrect == false && choiceId == selectedId) {
       return AppPalette.brickRed;
-    }
-
-    if (_listenAnswerIsCorrect == false && choiceId == correctId) {
-      return AppPalette.amber;
     }
 
     return AppPalette.mutedBrown;
@@ -697,6 +701,7 @@ class _GamePageState extends State<GamePage>
     _audioPlayer.dispose();
     _matchTimer?.cancel();
     _showAssociationTimer?.cancel();
+    _targetReplaySheenController.dispose();
     _isListenFeedbackInProgress = false;
     _isTargetReplayHighlighted = false;
     super.dispose();
@@ -994,7 +999,7 @@ class _GamePageState extends State<GamePage>
       _isListenFeedbackInProgress = true;
     });
 
-    await _playEntryAudioAndWait(chosenEntry);
+    final wrongAudioFuture = _playEntryAudioAndWait(chosenEntry);
 
     if (!mounted) return;
 
@@ -1024,10 +1029,13 @@ class _GamePageState extends State<GamePage>
           ],
         ),
         backgroundColor: AppPalette.brickRed,
-        duration: _wrongPairVisibleBeforeTargetReplay +
-            _audioPlaybackFallbackDuration +
-            _wrongPairVisibleAfterTargetReplay,
+        duration: _wrongFeedbackTotalDuration,
       ),
+    );
+
+    unawaited(
+      wrongAudioFuture.catchError((Object _) {
+      }),
     );
 
     await Future<void>.delayed(
@@ -1040,9 +1048,15 @@ class _GamePageState extends State<GamePage>
       _isTargetReplayHighlighted = true;
     });
 
+    _targetReplaySheenController
+      ..reset()
+      ..repeat();
+
     await _playEntryAudioAndWait(targetEntry);
 
     if (!mounted) return;
+
+    _targetReplaySheenController.stop();
 
     setState(() {
       _isTargetReplayHighlighted = false;
@@ -1147,55 +1161,62 @@ class _GamePageState extends State<GamePage>
              Row(
                mainAxisAlignment: MainAxisAlignment.center,
                children: [
-                 AnimatedScale(
-                   scale: _isTargetReplayHighlighted ? 1.06 : 1.0,
-                   duration: const Duration(milliseconds: 180),
-                   curve: Curves.easeOut,
-                   child: AnimatedContainer(
-                     duration: const Duration(milliseconds: 180),
-                     decoration: BoxDecoration(
-                       borderRadius: BorderRadius.circular(10),
-                       boxShadow: _isTargetReplayHighlighted
-                           ? const [
-                               BoxShadow(
-                                 color: AppPalette.amber,
-                                 blurRadius: 12,
-                                 spreadRadius: 1,
-                               ),
-                             ]
-                           : const [],
-                     ),
-                     child: ElevatedButton(
-                       style: ElevatedButton.styleFrom(
-                         backgroundColor: _isTargetReplayHighlighted
-                             ? AppPalette.amber
-                             : AppPalette.mutedBrown,
-                         foregroundColor: _isTargetReplayHighlighted
-                             ? AppPalette.ink
-                             : AppPalette.parchment,
+                 Stack(
+                   alignment: Alignment.center,
+                   children: [
+                     AnimatedContainer(
+                       duration: const Duration(milliseconds: 180),
+                       decoration: BoxDecoration(
+                         borderRadius: BorderRadius.circular(10),
+                         boxShadow: _isTargetReplayHighlighted
+                             ? const []
+                             : const [],
                        ),
-                       onPressed: _listenEntry == null || _isListenFeedbackInProgress
-                           ? null
-                           : () {
-                               if (_listenEntry != null) {
+                       child: ElevatedButton(
+                         style: ElevatedButton.styleFrom(
+                           backgroundColor: AppPalette.mutedBrown,
+                           foregroundColor: AppPalette.parchment,
+                         ),
+                         onPressed: _listenEntry == null
+                             ? null
+                             : () {
+                                 if (_isListenFeedbackInProgress) {
+                                   return;
+                                 }
                                  _playEntryAudio(_listenEntry!);
-                               }
-                             },
-                       child: Row(
-                         mainAxisSize: MainAxisSize.min,
-                         children: [
-                           const Icon(
-                             Icons.play_arrow_rounded,
-                             size: 24,
-                           ),
-                           const SizedBox(width: 8),
-                           Text(
-                             l10n.listen,
-                           ),
-                         ],
+                               },
+                         child: Row(
+                           mainAxisSize: MainAxisSize.min,
+                           children: [
+                             const Icon(
+                               Icons.play_arrow_rounded,
+                               size: 24,
+                             ),
+                             const SizedBox(width: 8),
+                             Text(
+                               l10n.listen,
+                             ),
+                           ],
+                         ),
                        ),
                      ),
-                   ),
+                     if (_isTargetReplayHighlighted)
+                       Positioned.fill(
+                         child: IgnorePointer(
+                           child: AnimatedBuilder(
+                             animation: _targetReplaySheenController,
+                             builder: (context, child) {
+                               return CustomPaint(
+                                 painter: _ReplayBorderSheen(
+                                   progress: _targetReplaySheenController.value,
+                                   borderRadius: 10,
+                                 ),
+                               );
+                             },
+                           ),
+                         ),
+                       ),
+                   ],
                  ),
                ],
              ),
@@ -1714,5 +1735,60 @@ class _GamePageState extends State<GamePage>
       _selectedLeftId = null;
       _selectedRightId = null;
     });
+  }
+}
+
+class _ReplayBorderSheen extends CustomPainter {
+  const _ReplayBorderSheen({
+    required this.progress,
+    required this.borderRadius,
+  });
+
+  final double progress;
+  final double borderRadius;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    final rrect = RRect.fromRectAndRadius(
+      rect.deflate(1),
+      Radius.circular(borderRadius),
+    );
+
+    final path = Path()..addRRect(rrect);
+    final metric = path.computeMetrics().first;
+    final length = metric.length;
+
+    final segmentLength = length * 0.20;
+    final start = (length + progress * length) % length;
+    final end = start + segmentLength;
+
+    final paint = Paint()
+      ..color = AppPalette.amber.withOpacity(0.45)
+      ..strokeWidth = 1.7
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    if (end <= length) {
+      canvas.drawPath(
+        metric.extractPath(start, end),
+        paint,
+      );
+    } else {
+      canvas.drawPath(
+        metric.extractPath(start, length),
+        paint,
+      );
+      canvas.drawPath(
+        metric.extractPath(0, end - length),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_ReplayBorderSheen oldDelegate) {
+    return oldDelegate.progress != progress ||
+        oldDelegate.borderRadius != borderRadius;
   }
 }

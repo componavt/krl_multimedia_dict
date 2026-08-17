@@ -1,6 +1,6 @@
 #!/bin/sh
 # run from repository root folder: /data/all/projects/git/krl_multimedia_dict
-OUTPUT_FILE="out_gitingest/krl_multimedia_dict_android_v17.md"
+OUTPUT_FILE="out_gitingest/krl_multimedia_dict_android_v19.md"
 
 mkdir -p out_gitingest
 

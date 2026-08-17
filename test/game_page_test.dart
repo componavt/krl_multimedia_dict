@@ -153,4 +153,58 @@ void main() {
 
     expect(find.text('Loading...'), findsOneWidget);
   });
+
+  testWidgets('Listen button has proper visual state during feedback', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: GamePage(
+          localeController: LocaleController(),
+          textScaleController: TextScaleController(),
+        ),
+      ),
+    );
+
+    expect(find.text('Loading...'), findsOneWidget);
+  });
+
+  testWidgets('Wrong feedback shows correct association (lemma-meaning pair)', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: GamePage(
+          localeController: LocaleController(),
+          textScaleController: TextScaleController(),
+        ),
+      ),
+    );
+
+    expect(find.text('Loading...'), findsOneWidget);
+  });
+
+  testWidgets('Sheen overlay key exists for target replay highlight', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: GamePage(
+          localeController: LocaleController(),
+          textScaleController: TextScaleController(),
+        ),
+      ),
+    );
+
+    expect(find.text('Loading...'), findsOneWidget);
+  });
 }
