@@ -98,6 +98,9 @@ class _GamePageState extends State<GamePage>
   static const Duration _audioPlaybackFallbackDuration =
       Duration(seconds: 4);
 
+  static const Duration _minimumTargetSheenDuration =
+      Duration(milliseconds: 1600);
+
   @override
   void initState() {
     super.initState();
@@ -898,6 +901,23 @@ class _GamePageState extends State<GamePage>
     await _startListenRound();
   }
 
+  void _handleListenChoice(Map<String, dynamic> choice) {
+    final selectedId = choice['lemma_id'].toString();
+    final correctId = _listenEntry!['lemma_id'].toString();
+
+    setState(() {
+      _selectedListenId = selectedId;
+      _listenAnswerIsCorrect = selectedId == correctId;
+    });
+
+    if (selectedId == correctId) {
+      _listenStreak++;
+      _handleListenCorrect();
+    } else {
+      _handleListenWrong();
+    }
+  }
+
   Future<void> _handleListenCorrect() async {
     final entryId = _listenEntry!['lemma_id'].toString();
 
@@ -912,8 +932,34 @@ class _GamePageState extends State<GamePage>
       _listenBestStreak = _listenStreak;
     }
 
+    final sheenStartedAt = DateTime.now();
+
     setState(() {
       _listenScore++;
+      _isTargetReplayHighlighted = true;
+    });
+
+    _targetReplaySheenController
+      ..reset()
+      ..repeat();
+
+    await _playEntryAudio(_listenEntry!);
+
+    if (!mounted) return;
+
+    final elapsed = DateTime.now().difference(sheenStartedAt);
+    final remaining = _minimumTargetSheenDuration - elapsed;
+
+    if (remaining > Duration.zero) {
+      await Future<void>.delayed(remaining);
+    }
+
+    if (!mounted) return;
+
+    _targetReplaySheenController.stop();
+
+    setState(() {
+      _isTargetReplayHighlighted = false;
     });
 
     await Future<void>.delayed(const Duration(milliseconds: 1500));
@@ -944,6 +990,8 @@ class _GamePageState extends State<GamePage>
       (choice) => choice['lemma_id'].toString() == selectedId,
     );
 
+    final sheenStartedAt = DateTime.now();
+
     setState(() {
       _currentRoundHadWrongAttempt = true;
       _listenStreak = 0;
@@ -962,9 +1010,24 @@ class _GamePageState extends State<GamePage>
       _isTargetReplayHighlighted = true;
     });
 
+    _targetReplaySheenController
+      ..reset()
+      ..repeat();
+
     await _playEntryAudioAndWait(targetEntry);
 
     if (!mounted) return;
+
+    final elapsed = DateTime.now().difference(sheenStartedAt);
+    final remaining = _minimumTargetSheenDuration - elapsed;
+
+    if (remaining > Duration.zero) {
+      await Future<void>.delayed(remaining);
+    }
+
+    if (!mounted) return;
+
+    _targetReplaySheenController.stop();
 
     setState(() {
       _isTargetReplayHighlighted = false;
@@ -1076,19 +1139,17 @@ class _GamePageState extends State<GamePage>
                              ? const []
                              : const [],
                        ),
-                       child: ElevatedButton(
-                         style: ElevatedButton.styleFrom(
-                           backgroundColor: AppPalette.mutedBrown,
-                           foregroundColor: AppPalette.parchment,
-                         ),
-                         onPressed: _listenEntry == null
-                             ? null
-                             : () {
-                                 if (_isListenFeedbackInProgress) {
-                                   return;
-                                 }
-                                 _playEntryAudio(_listenEntry!);
-                               },
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppPalette.mutedBrown,
+                            foregroundColor: AppPalette.parchment,
+                          ),
+                          onPressed: () {
+                            if (_isListenFeedbackInProgress) {
+                              return;
+                            }
+                            _playEntryAudio(_listenEntry!);
+                          },
                          child: Row(
                            mainAxisSize: MainAxisSize.min,
                            children: [
@@ -1152,40 +1213,25 @@ class _GamePageState extends State<GamePage>
                      minWidth: 140,
                      maxWidth: 280,
                    ),
-                   child: ElevatedButton(
-                     style: ElevatedButton.styleFrom(
-                       padding: const EdgeInsets.symmetric(
-                         horizontal: 20,
-                         vertical: 16,
-                       ),
-                       backgroundColor: _listenChoiceColor(choice),
-                     ),
-                     onPressed: _listenAnswerIsCorrect == true
-                         ? null
-                         : () {
-                             final selectedId = choiceId;
-                             final correctId = _listenEntry!['lemma_id'].toString();
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 16,
+                        ),
+                        backgroundColor: _listenChoiceColor(choice),
+                      ),
+                      onPressed: () {
+                        if (_isListenFeedbackInProgress) {
+                          return;
+                        }
 
-                             if (_selectedListenId == selectedId) {
-                               return;
-                             }
+                        if (_listenAnswerIsCorrect == true) {
+                          return;
+                        }
 
-                             if (!mounted) return;
-
-                             setState(() {
-                               _selectedListenId = selectedId;
-                               _listenAnswerIsCorrect = selectedId == correctId;
-                             });
-
-                             if (!mounted) return;
-
-                             if (selectedId == correctId) {
-                               _listenStreak++;
-                               _handleListenCorrect();
-                             } else {
-                               _handleListenWrong();
-                             }
-                           },
+                        _handleListenChoice(choice);
+                      },
                      child: Column(
                        mainAxisSize: MainAxisSize.min,
                        children: [
@@ -1257,17 +1303,29 @@ class _GamePageState extends State<GamePage>
                        color: AppPalette.parchment,
                      ),
                    ),
-                   Text(
-                     '$_listenStreak',
-                     style: const TextStyle(
-                       fontWeight: FontWeight.w700,
-                       fontSize: 24,
-                       fontFamily: 'Open Sans',
-                       color: AppPalette.parchment,
-                     ),
-                   ),
-                 ],
-               ),
+                    Text(
+                      '$_listenStreak',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 24,
+                        fontFamily: 'Open Sans',
+                        color: AppPalette.parchment,
+                      ),
+                    ),
+                    if (_listenStreak >= 3)
+                      const SizedBox(height: 4),
+                    if (_listenStreak >= 3)
+                      Text(
+                        _listenStreak >= 8 ? '***' : (_listenStreak >= 5 ? '**' : '*'),
+                        style: const TextStyle(
+                          color: AppPalette.amber,
+                          fontFamily: 'Centro',
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 3,
+                        ),
+                      ),
+                  ],
+                ),
                if (_listenBestStreak > 0)
                  Column(
                    children: [
