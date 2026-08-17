@@ -95,18 +95,6 @@ class _GamePageState extends State<GamePage>
 
   static const int _totalListenRounds = 10;
 
-  static const Duration _correctFeedbackDuration =
-      Duration(seconds: 5);
-
-  static const Duration _wrongPairVisibleBeforeTargetReplay =
-      Duration(seconds: 2);
-
-  static const Duration _wrongPairVisibleAfterTargetReplay =
-      Duration(seconds: 3);
-
-  static const Duration _wrongFeedbackTotalDuration =
-      Duration(seconds: 10);
-
   static const Duration _audioPlaybackFallbackDuration =
       Duration(seconds: 4);
 
@@ -920,8 +908,6 @@ class _GamePageState extends State<GamePage>
 
     if (!mounted) return;
 
-    final l10n = AppLocalizations.of(context);
-
     if (_listenStreak > _listenBestStreak) {
       _listenBestStreak = _listenStreak;
     }
@@ -930,38 +916,7 @@ class _GamePageState extends State<GamePage>
       _listenScore++;
     });
 
-    final lemma = _listenEntry!['lemma'].toString();
-    final meaning = _listenEntry!['meaning_text'].toString();
-    final associationText = l10n.listenCorrectAssociation(lemma, meaning);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              l10n.correct,
-              style: const TextStyle(
-                fontWeight: FontWeight.w700,
-                fontFamily: 'Open Sans',
-              ),
-            ),
-            Text(
-              associationText,
-              style: const TextStyle(
-                fontStyle: FontStyle.italic,
-                fontFamily: 'Open Sans',
-              ),
-            ),
-          ],
-        ),
-        backgroundColor: AppPalette.mossGreen,
-        duration: _correctFeedbackDuration,
-      ),
-    );
-
-    await Future<void>.delayed(_correctFeedbackDuration);
+    await Future<void>.delayed(const Duration(milliseconds: 1500));
 
     if (!mounted) return;
 
@@ -970,13 +925,12 @@ class _GamePageState extends State<GamePage>
       _isListenSessionCompleted = true;
       _completeListenSession();
     } else {
-      _startListenRound();
+      await _startListenRound();
     }
   }
 
   Future<void> _handleListenWrong() async {
     final selectedId = _selectedListenId;
-
     if (selectedId == null || _isListenFeedbackInProgress) {
       return;
     }
@@ -987,11 +941,8 @@ class _GamePageState extends State<GamePage>
     }
 
     final chosenEntry = _listenChoices.firstWhere(
-      (c) => c['lemma_id'].toString() == selectedId,
+      (choice) => choice['lemma_id'].toString() == selectedId,
     );
-
-    final chosenLemma = chosenEntry['lemma'].toString();
-    final chosenMeaning = chosenEntry['meaning_text'].toString();
 
     setState(() {
       _currentRoundHadWrongAttempt = true;
@@ -999,48 +950,11 @@ class _GamePageState extends State<GamePage>
       _isListenFeedbackInProgress = true;
     });
 
-    final wrongAudioFuture = _playEntryAudioAndWait(chosenEntry);
+    await _playEntryAudioAndWait(chosenEntry);
 
     if (!mounted) return;
 
-    final l10n = AppLocalizations.of(context);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              l10n.wrongTryAgain,
-              style: const TextStyle(
-                fontWeight: FontWeight.w700,
-                fontFamily: 'Open Sans',
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              l10n.wrongChoiceAssociation(
-                chosenLemma,
-                chosenMeaning,
-              ),
-              style: const TextStyle(fontFamily: 'Open Sans'),
-            ),
-          ],
-        ),
-        backgroundColor: AppPalette.brickRed,
-        duration: _wrongFeedbackTotalDuration,
-      ),
-    );
-
-    unawaited(
-      wrongAudioFuture.catchError((Object _) {
-      }),
-    );
-
-    await Future<void>.delayed(
-      _wrongPairVisibleBeforeTargetReplay,
-    );
+    await Future<void>.delayed(const Duration(milliseconds: 600));
 
     if (!mounted) return;
 
@@ -1048,27 +962,17 @@ class _GamePageState extends State<GamePage>
       _isTargetReplayHighlighted = true;
     });
 
-    _targetReplaySheenController
-      ..reset()
-      ..repeat();
-
     await _playEntryAudioAndWait(targetEntry);
 
     if (!mounted) return;
-
-    _targetReplaySheenController.stop();
 
     setState(() {
       _isTargetReplayHighlighted = false;
     });
 
-    await Future<void>.delayed(
-      _wrongPairVisibleAfterTargetReplay,
-    );
+    await Future<void>.delayed(const Duration(milliseconds: 800));
 
     if (!mounted) return;
-
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
     _reshuffleListenChoices();
 
@@ -1236,61 +1140,85 @@ class _GamePageState extends State<GamePage>
               alignment: WrapAlignment.center,
               spacing: 12,
               runSpacing: 12,
-              children: _listenChoices.map((choice) {
-                return ConstrainedBox(
-                  constraints: const BoxConstraints(
-                    minWidth: 140,
-                    maxWidth: 280,
-                  ),
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 16,
-                      ),
-                      backgroundColor: _listenChoiceColor(choice),
-                    ),
-                    onPressed: _listenAnswerIsCorrect == true
-                        ? null
-                        : () {
-                            final selectedId = choice['lemma_id'].toString();
-                            final correctId = _listenEntry!['lemma_id'].toString();
+               children: _listenChoices.map((choice) {
+                 final choiceId = choice['lemma_id'].toString();
+                 final isSelected = _selectedListenId == choiceId;
+                 final isWrongChoice = _listenAnswerIsCorrect == false && isSelected;
+                 final choiceMeaning = choice['meaning_text'].toString();
+                 final choiceLemma = choice['lemma'].toString();
 
-                            if (_selectedListenId == selectedId) {
-                              return;
-                            }
+                 return ConstrainedBox(
+                   constraints: const BoxConstraints(
+                     minWidth: 140,
+                     maxWidth: 280,
+                   ),
+                   child: ElevatedButton(
+                     style: ElevatedButton.styleFrom(
+                       padding: const EdgeInsets.symmetric(
+                         horizontal: 20,
+                         vertical: 16,
+                       ),
+                       backgroundColor: _listenChoiceColor(choice),
+                     ),
+                     onPressed: _listenAnswerIsCorrect == true
+                         ? null
+                         : () {
+                             final selectedId = choiceId;
+                             final correctId = _listenEntry!['lemma_id'].toString();
 
-                            if (!mounted) return;
+                             if (_selectedListenId == selectedId) {
+                               return;
+                             }
 
-                            setState(() {
-                              _selectedListenId = selectedId;
-                              _listenAnswerIsCorrect = selectedId == correctId;
-                            });
+                             if (!mounted) return;
 
-                            if (!mounted) return;
+                             setState(() {
+                               _selectedListenId = selectedId;
+                               _listenAnswerIsCorrect = selectedId == correctId;
+                             });
 
-                            if (selectedId == correctId) {
-                              _listenStreak++;
-                              _handleListenCorrect();
-                            } else {
-                              _handleListenWrong();
-                            }
-                          },
-                    child: Text(
-                      choice['meaning_text'].toString(),
-                      textAlign: TextAlign.center,
-                      softWrap: true,
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontFamily: 'Open Sans',
-                        fontWeight: FontWeight.w600,
-                        color: AppPalette.parchment,
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
+                             if (!mounted) return;
+
+                             if (selectedId == correctId) {
+                               _listenStreak++;
+                               _handleListenCorrect();
+                             } else {
+                               _handleListenWrong();
+                             }
+                           },
+                     child: Column(
+                       mainAxisSize: MainAxisSize.min,
+                       children: [
+                         Text(
+                           choiceMeaning,
+                           textAlign: TextAlign.center,
+                           softWrap: true,
+                           maxLines: 3,
+                           overflow: TextOverflow.ellipsis,
+                           style: const TextStyle(
+                             fontFamily: 'Open Sans',
+                             fontWeight: FontWeight.w600,
+                             color: AppPalette.parchment,
+                           ),
+                         ),
+                         if (isWrongChoice) ...[
+                           const SizedBox(height: 4),
+                           Text(
+                             choiceLemma,
+                             style: const TextStyle(
+                               fontFamily: 'Open Sans',
+                               fontWeight: FontWeight.w700,
+                               fontSize: 13,
+                               color: AppPalette.parchment,
+                               fontStyle: FontStyle.italic,
+                             ),
+                           ),
+                         ],
+                       ],
+                     ),
+                   ),
+                 );
+               }).toList(),
             ),
            const SizedBox(height: 24),
            Row(
@@ -1764,7 +1692,7 @@ class _ReplayBorderSheen extends CustomPainter {
     final end = start + segmentLength;
 
     final paint = Paint()
-      ..color = AppPalette.amber.withOpacity(0.45)
+      ..color = AppPalette.amber.withValues(alpha: 0.45)
       ..strokeWidth = 1.7
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;

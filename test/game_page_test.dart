@@ -118,7 +118,45 @@ void main() {
     expect(find.text('Loading...'), findsOneWidget);
   });
 
-  testWidgets('Mode A: Correct answer shows association', (
+  testWidgets('Mode A: Correct answer does not show bottom SnackBar', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: GamePage(
+          localeController: LocaleController(),
+          textScaleController: TextScaleController(),
+        ),
+      ),
+    );
+
+    expect(find.text('Loading...'), findsOneWidget);
+    expect(find.byType(SnackBar), findsNothing);
+  });
+
+  testWidgets('Mode A: Incorrect answer does not show bottom SnackBar', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: GamePage(
+          localeController: LocaleController(),
+          textScaleController: TextScaleController(),
+        ),
+      ),
+    );
+
+    expect(find.text('Loading...'), findsOneWidget);
+    expect(find.byType(SnackBar), findsNothing);
+  });
+
+  testWidgets('Mode A: Correct answer shows association and advances round', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(
@@ -172,7 +210,7 @@ void main() {
     expect(find.text('Loading...'), findsOneWidget);
   });
 
-  testWidgets('Wrong feedback shows correct association (lemma-meaning pair)', (
+  testWidgets('Wrong feedback shows wrong lemma in-card instead of bottom SnackBar', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(
@@ -188,6 +226,7 @@ void main() {
     );
 
     expect(find.text('Loading...'), findsOneWidget);
+    expect(find.byType(SnackBar), findsNothing);
   });
 
   testWidgets('Sheen overlay key exists for target replay highlight', (
