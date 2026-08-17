@@ -211,6 +211,7 @@ class _MatchGameViewState extends State<MatchGameView> {
               if (isLeftSide) {
                 return MatchChoiceCard(
                   gameEntry: card,
+                  displayField: 'lemma',
                   onTap: () {
                     widget.controller.selectLeft(card);
                   },
@@ -222,6 +223,7 @@ class _MatchGameViewState extends State<MatchGameView> {
               } else {
                 return MatchChoiceCard(
                   gameEntry: card,
+                  displayField: 'meaning',
                   onTap: () {
                     widget.controller.selectRight(card);
                   },

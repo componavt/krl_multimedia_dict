@@ -21,11 +21,13 @@ class GameAudioPlayerImpl implements GameAudioPlayer {
 
   @override
   Future<void> playAndWait(String lemmaId) async {
-    await play(lemmaId);
     final completion = _audioPlayer.onPlayerComplete.first;
+    await play(lemmaId);
     try {
       await completion.timeout(_fallbackDuration);
-    } on TimeoutException {}
+    } on TimeoutException {
+      // Fallback timeout reached; continue gracefully.
+    }
   }
 
   @override

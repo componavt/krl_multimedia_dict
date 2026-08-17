@@ -7,6 +7,7 @@ class MatchChoiceCard extends StatelessWidget {
   const MatchChoiceCard({
     super.key,
     required this.gameEntry,
+    required this.displayField,
     required this.onTap,
     required this.isSelected,
     required this.isMatched,
@@ -16,6 +17,7 @@ class MatchChoiceCard extends StatelessWidget {
   });
 
   final GameEntry gameEntry;
+  final String displayField;
   final VoidCallback? onTap;
   final bool isSelected;
   final bool isMatched;
@@ -26,6 +28,7 @@ class MatchChoiceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Color cardColor = _cardColor;
+    final displayText = _getDisplayText();
 
     final cardContent = InkWell(
       onTap: isMatched ? null : onTap,
@@ -37,7 +40,7 @@ class MatchChoiceCard extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                _displayText,
+                displayText,
                 softWrap: true,
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
@@ -67,8 +70,8 @@ class MatchChoiceCard extends StatelessWidget {
     );
   }
 
-  String get _displayText {
-    if (gameEntry.lemmaId == gameEntry.meaning) {
+  String _getDisplayText() {
+    if (displayField == 'lemma') {
       return gameEntry.lemma;
     }
     return gameEntry.meaning;

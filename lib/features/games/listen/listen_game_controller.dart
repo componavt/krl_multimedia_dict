@@ -101,11 +101,13 @@ class ListenGameController extends ChangeNotifier {
 
     final sheenStartedAt = DateTime.now();
 
-    _currentState = ListenGameState.withCelebration(
-      round: _currentState.currentRound!,
+    _currentState = _currentState.copyWith(
       score: _score,
       streak: _streak,
       bestStreak: _bestStreak,
+      selectedEntryId: entry.lemmaId,
+      answerIsCorrect: true,
+      isFeedbackInProgress: true,
       isTargetReplayHighlighted: true,
       isCorrectChoiceCelebrating: true,
     );
@@ -120,11 +122,16 @@ class ListenGameController extends ChangeNotifier {
       await Future<void>.delayed(remaining);
     }
 
-    _currentState = ListenGameState.feedbackComplete(
-      round: _currentState.currentRound!,
+    _currentState = _currentState.copyWith(
       score: _score,
       streak: _streak,
       bestStreak: _bestStreak,
+      selectedEntryId: null,
+      answerIsCorrect: null,
+      hadWrongAttempt: false,
+      isFeedbackInProgress: false,
+      isTargetReplayHighlighted: false,
+      isCorrectChoiceCelebrating: false,
     );
     notifyListeners();
 
@@ -142,25 +149,24 @@ class ListenGameController extends ChangeNotifier {
     _streak = 0;
     _hadWrongAttempt = true;
 
-    _currentState = ListenGameState.withChoice(
-      round: _currentState.currentRound!,
+    _currentState = _currentState.copyWith(
       score: _score,
       streak: _streak,
       bestStreak: _bestStreak,
       selectedEntryId: entry.lemmaId,
       answerIsCorrect: false,
+      isFeedbackInProgress: true,
+      isTargetReplayHighlighted: false,
+      isCorrectChoiceCelebrating: false,
       hadWrongAttempt: _hadWrongAttempt,
     );
     notifyListeners();
 
     await audioPlayer.playAndWait(entry.lemmaId);
 
-    _currentState = ListenGameState.withCelebration(
-      round: _currentState.currentRound!,
-      score: _score,
-      streak: _streak,
-      bestStreak: _bestStreak,
+    _currentState = _currentState.copyWith(
       isTargetReplayHighlighted: true,
+      isFeedbackInProgress: false,
       isCorrectChoiceCelebrating: false,
     );
     notifyListeners();
@@ -174,11 +180,16 @@ class ListenGameController extends ChangeNotifier {
       await Future<void>.delayed(remaining);
     }
 
-    _currentState = ListenGameState.feedbackComplete(
-      round: _currentState.currentRound!,
+    _currentState = _currentState.copyWith(
       score: _score,
       streak: _streak,
       bestStreak: _bestStreak,
+      selectedEntryId: null,
+      answerIsCorrect: null,
+      hadWrongAttempt: false,
+      isFeedbackInProgress: false,
+      isTargetReplayHighlighted: false,
+      isCorrectChoiceCelebrating: false,
     );
     notifyListeners();
 
