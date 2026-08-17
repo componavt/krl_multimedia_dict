@@ -78,11 +78,19 @@
   "textSizeSmall": "Small",
   "textSizeMedium": "Medium",
   "textSizeLarge": "Large",
-  "hint": "Hint",
-  "hintCharacters": "{count} characters",
-  "hintStartsWith": "starts with '{letter}'",
-  "hintPattern": "{pattern}",
-  "wrongChoiceMeaning": "{lemma} means {meaning}",
+   "hint": "Hint",
+   "hintCharacters": "{count} characters",
+   "hintStartsWith": "starts with '{letter}'",
+   "hintPattern": "{pattern}",
+   "wrongChoiceMeaning": "{lemma} means {meaning}",
+   "@wrongChoiceAssociation": {
+     "description": "Association shown after wrong answer, with lemma and meaning of selected wrong entry separated by em dash",
+     "placeholders": {
+       "lemma": {},
+       "meaning": {}
+     }
+   },
+   "wrongChoiceAssociation": "{lemma} — {meaning}",
   "sessionCompleted": "Session Completed",
   "restoreArchiveCard": "Restore the archive card",
   "cardsNeedReview": "Cards needing review",

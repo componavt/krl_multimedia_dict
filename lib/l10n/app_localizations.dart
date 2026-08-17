@@ -536,6 +536,12 @@ abstract class AppLocalizations {
   /// **'{lemma} means {meaning}'**
   String wrongChoiceMeaning(Object lemma, Object meaning);
 
+  /// Association shown after wrong answer, with lemma and meaning of selected wrong entry separated by em dash
+  ///
+  /// In en, this message translates to:
+  /// **'{lemma} — {meaning}'**
+  String wrongChoiceAssociation(Object lemma, Object meaning);
+
   /// No description provided for @sessionCompleted.
   ///
   /// In en, this message translates to:

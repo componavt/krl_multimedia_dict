@@ -78,11 +78,19 @@
   "textSizeSmall": "Мелко",
   "textSizeMedium": "Средне",
   "textSizeLarge": "Крупно",
-  "hint": "Подсказка",
-  "hintCharacters": "{count} букв",
-  "hintStartsWith": "начинается на '{letter}'",
-  "hintPattern": "{pattern}",
-  "wrongChoiceMeaning": "{lemma} — {meaning}",
+   "hint": "Подсказка",
+   "hintCharacters": "{count} букв",
+   "hintStartsWith": "начинается на '{letter}'",
+   "hintPattern": "{pattern}",
+   "wrongChoiceMeaning": "{lemma} — {meaning}",
+   "@wrongChoiceAssociation": {
+     "description": "Ассоциация после неверного ответа: лемма и значение выбранной неправильной записи, разделенные тире",
+     "placeholders": {
+       "lemma": {},
+       "meaning": {}
+     }
+   },
+   "wrongChoiceAssociation": "{lemma} — {meaning}",
   "sessionCompleted": "Смена завершена",
   "restoreArchiveCard": "Восстановите архивную карточку",
   "cardsNeedReview": "Карточки нуждаются в повторении",

@@ -915,9 +915,17 @@ class _GamePageState extends State<GamePage>
   }
 
   Future<void> _handleListenWrong() async {
+    final selectedId = _selectedListenId;
+
+    if (selectedId == null) {
+      return;
+    }
+
     final chosenEntry = _listenChoices.firstWhere(
-      (c) => c['lemma_id'].toString() == _selectedListenId,
+      (c) => c['lemma_id'].toString() == selectedId,
     );
+
+    final chosenLemma = chosenEntry['lemma'].toString();
     final chosenMeaning = chosenEntry['meaning_text'].toString();
 
     await _playEntryAudio(_listenEntry!);
@@ -926,8 +934,10 @@ class _GamePageState extends State<GamePage>
 
     final l10n = AppLocalizations.of(context);
 
-    _currentRoundHadWrongAttempt = true;
-    _listenStreak = 0;
+    setState(() {
+      _currentRoundHadWrongAttempt = true;
+      _listenStreak = 0;
+    });
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -936,7 +946,7 @@ class _GamePageState extends State<GamePage>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '${l10n.wrongTryAgain} ${l10n.listenAndGuess}',
+              l10n.wrongTryAgain,
               style: const TextStyle(
                 fontWeight: FontWeight.w700,
                 fontFamily: 'Open Sans',
@@ -944,8 +954,8 @@ class _GamePageState extends State<GamePage>
             ),
             const SizedBox(height: 4),
             Text(
-              l10n.wrongChoiceMeaning(
-                _listenEntry!['lemma'].toString(),
+              l10n.wrongChoiceAssociation(
+                chosenLemma,
                 chosenMeaning,
               ),
               style: const TextStyle(fontFamily: 'Open Sans'),
@@ -1021,27 +1031,28 @@ class _GamePageState extends State<GamePage>
               minHeight: 12,
             ),
            ),
-            const SizedBox(height: 24),
-            Container(
-              width: double.infinity,
-              margin: const EdgeInsets.only(bottom: 20),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              decoration: BoxDecoration(
-                color: AppPalette.parchment,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppPalette.amber, width: 1.2),
-              ),
-              child: Text(
-                _listenEntry!['lemma'].toString(),
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: AppPalette.ink,
-                  fontFamily: 'Open Sans',
-                  fontWeight: FontWeight.w700,
-                  fontSize: 22,
+            if (_currentRoundHadWrongAttempt)
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                decoration: BoxDecoration(
+                  color: AppPalette.parchment,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppPalette.amber, width: 1.2),
+                ),
+                child: Text(
+                  _listenEntry!['lemma'].toString(),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: AppPalette.ink,
+                    fontFamily: 'Open Sans',
+                    fontWeight: FontWeight.w700,
+                    fontSize: 22,
+                  ),
                 ),
               ),
-            ),
+            const SizedBox(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [

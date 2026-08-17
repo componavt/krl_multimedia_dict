@@ -240,6 +240,11 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
+  String wrongChoiceAssociation(Object lemma, Object meaning) {
+    return '$lemma — $meaning';
+  }
+
+  @override
   String get sessionCompleted => 'Смена завершена';
 
   @override
