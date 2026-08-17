@@ -266,7 +266,6 @@ class _GamePageState extends State<GamePage>
       return;
     }
 
-    final l10n = AppLocalizations.of(context);
     final validEntries = _validEntries;
 
     final audioEnabledEntries = validEntries.where((entry) {
@@ -277,6 +276,7 @@ class _GamePageState extends State<GamePage>
     if (audioEnabledEntries.length < 4) {
       if (!mounted) return;
 
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(l10n.notEnoughEntries),
@@ -285,6 +285,8 @@ class _GamePageState extends State<GamePage>
       );
       return;
     }
+
+    if (!mounted) return;
 
     final random = Random();
     final availableEntries = audioEnabledEntries.where((entry) {
@@ -324,6 +326,7 @@ class _GamePageState extends State<GamePage>
       _currentRoundHadWrongAttempt = false;
     });
 
+    if (!mounted) return;
     await _playEntryAudio(correct);
   }
 
@@ -877,7 +880,6 @@ class _GamePageState extends State<GamePage>
   }
 
   Future<void> _handleListenWrong() async {
-    final l10n = AppLocalizations.of(context);
     final chosenEntry = _listenChoices.firstWhere(
       (c) => c['lemma_id'].toString() == _selectedListenId,
     );
@@ -886,6 +888,8 @@ class _GamePageState extends State<GamePage>
     await _playEntryAudio(_listenEntry!);
 
     if (!mounted) return;
+
+    final l10n = AppLocalizations.of(context);
 
     _currentRoundHadWrongAttempt = true;
     _listenStreak = 0;
@@ -1041,11 +1045,15 @@ class _GamePageState extends State<GamePage>
                         }
 
                         if (!mounted) return;
+
                         setState(() {
                           _selectedListenId = selectedId;
                           _listenAnswerIsCorrect = selectedId == correctId;
                         });
-                        if (_listenAnswerIsCorrect == true) {
+
+                        if (!mounted) return;
+
+                        if (selectedId == correctId) {
                           _listenStreak++;
                           _handleListenCorrect();
                         } else {
