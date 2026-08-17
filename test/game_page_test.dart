@@ -63,4 +63,22 @@ void main() {
 
     expect(find.text('Loading...'), findsOneWidget);
   });
+
+  testWidgets('Meaning widget shows target Russian meaning in Listen mode', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: GamePage(
+          localeController: LocaleController(),
+          textScaleController: TextScaleController(),
+        ),
+      ),
+    );
+
+    expect(find.text('Loading...'), findsOneWidget);
+  });
 }

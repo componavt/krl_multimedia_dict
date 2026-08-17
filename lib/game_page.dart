@@ -985,45 +985,65 @@ class _GamePageState extends State<GamePage>
               valueColor: AlwaysStoppedAnimation<Color>(_listenProgressColor()),
               minHeight: 12,
             ),
-          ),
-          const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppPalette.mutedBrown,
-                  foregroundColor: AppPalette.parchment,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 16,
-                  ),
-                ),
-                onPressed: () {
-                  if (_listenEntry != null) {
-                    _playEntryAudio(_listenEntry!);
-                  }
-                },
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.play_arrow_rounded,
-                      size: 24,
-                      color: AppPalette.parchment,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      l10n.listen,
-                      style: const TextStyle(color: AppPalette.parchment),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 32),
-          for (final choice in _listenChoices)
+           ),
+           const SizedBox(height: 24),
+           Container(
+             width: double.infinity,
+             margin: const EdgeInsets.only(bottom: 20),
+             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+             decoration: BoxDecoration(
+               color: AppPalette.parchment,
+               borderRadius: BorderRadius.circular(12),
+               border: Border.all(color: AppPalette.amber, width: 1.2),
+             ),
+             child: Text(
+               _listenEntry!['meaning_text'].toString(),
+               textAlign: TextAlign.center,
+               style: const TextStyle(
+                 color: AppPalette.ink,
+                 fontFamily: 'Open Sans',
+                 fontWeight: FontWeight.w700,
+                 fontSize: 22,
+               ),
+             ),
+           ),
+           Row(
+             mainAxisAlignment: MainAxisAlignment.center,
+             children: [
+               ElevatedButton(
+                 style: ElevatedButton.styleFrom(
+                   backgroundColor: AppPalette.mutedBrown,
+                   foregroundColor: AppPalette.parchment,
+                   padding: const EdgeInsets.symmetric(
+                     horizontal: 24,
+                     vertical: 16,
+                   ),
+                 ),
+                 onPressed: () {
+                   if (_listenEntry != null) {
+                     _playEntryAudio(_listenEntry!);
+                   }
+                 },
+                 child: Row(
+                   mainAxisSize: MainAxisSize.min,
+                   children: [
+                     const Icon(
+                       Icons.play_arrow_rounded,
+                       size: 24,
+                       color: AppPalette.parchment,
+                     ),
+                     const SizedBox(width: 8),
+                     Text(
+                       l10n.listen,
+                       style: const TextStyle(color: AppPalette.parchment),
+                     ),
+                   ],
+                 ),
+               ),
+             ],
+           ),
+           const SizedBox(height: 32),
+           for (final choice in _listenChoices)
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: ElevatedButton(
@@ -1070,7 +1090,7 @@ class _GamePageState extends State<GamePage>
                 ),
               ),
             ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
