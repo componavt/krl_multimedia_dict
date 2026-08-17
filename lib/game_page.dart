@@ -76,6 +76,8 @@ class _GamePageState extends State<GamePage>
   bool _isListenFeedbackInProgress = false;
   bool _isTargetReplayHighlighted = false;
   late final AnimationController _targetReplaySheenController;
+  bool _isCorrectChoiceCelebrating = false;
+  late final AnimationController _correctChoiceController;
 
   List<Map<String, dynamic>> _matchEntries = <Map<String, dynamic>>[];
   List<Map<String, dynamic>> _leftCards = <Map<String, dynamic>>[];
@@ -107,6 +109,10 @@ class _GamePageState extends State<GamePage>
     _targetReplaySheenController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1400),
+    );
+    _correctChoiceController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
     );
     _initializeGameData();
   }
@@ -402,6 +408,7 @@ class _GamePageState extends State<GamePage>
        _currentRoundHadWrongAttempt = false;
        _isListenFeedbackInProgress = false;
        _isTargetReplayHighlighted = false;
+       _isCorrectChoiceCelebrating = false;
      });
 
      if (!mounted) return;
@@ -483,6 +490,7 @@ class _GamePageState extends State<GamePage>
       _currentMode = GameMode.selection;
       _isListenFeedbackInProgress = false;
       _isTargetReplayHighlighted = false;
+      _isCorrectChoiceCelebrating = false;
     });
   }
 
@@ -693,6 +701,7 @@ class _GamePageState extends State<GamePage>
     _matchTimer?.cancel();
     _showAssociationTimer?.cancel();
     _targetReplaySheenController.dispose();
+    _correctChoiceController.dispose();
     _isListenFeedbackInProgress = false;
     _isTargetReplayHighlighted = false;
     super.dispose();
@@ -937,7 +946,10 @@ class _GamePageState extends State<GamePage>
     setState(() {
       _listenScore++;
       _isTargetReplayHighlighted = true;
+      _isCorrectChoiceCelebrating = true;
     });
+
+    _correctChoiceController.forward(from: 0);
 
     _targetReplaySheenController
       ..reset()
@@ -957,9 +969,11 @@ class _GamePageState extends State<GamePage>
     if (!mounted) return;
 
     _targetReplaySheenController.stop();
+    _correctChoiceController.stop();
 
     setState(() {
       _isTargetReplayHighlighted = false;
+      _isCorrectChoiceCelebrating = false;
     });
 
     await Future<void>.delayed(const Duration(milliseconds: 1500));
@@ -1165,22 +1179,23 @@ class _GamePageState extends State<GamePage>
                          ),
                        ),
                      ),
-                     if (_isTargetReplayHighlighted)
-                       Positioned.fill(
-                         child: IgnorePointer(
-                           child: AnimatedBuilder(
-                             animation: _targetReplaySheenController,
-                             builder: (context, child) {
-                               return CustomPaint(
-                                 painter: _ReplayBorderSheen(
-                                   progress: _targetReplaySheenController.value,
-                                   borderRadius: 10,
-                                 ),
-                               );
-                             },
-                           ),
-                         ),
-                       ),
+                      if (_isTargetReplayHighlighted)
+                        Positioned.fill(
+                          child: IgnorePointer(
+                            child: AnimatedBuilder(
+                              animation: _targetReplaySheenController,
+                              builder: (context, child) {
+                                return CustomPaint(
+                                  painter: _ReplayBorderSheen(
+                                    progress: _targetReplaySheenController.value,
+                                    borderRadius: 10,
+                                    color: AppPalette.amber,
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
                    ],
                  ),
                ],
@@ -1197,74 +1212,102 @@ class _GamePageState extends State<GamePage>
               ),
             ),
             const SizedBox(height: 24),
-           Wrap(
-              alignment: WrapAlignment.center,
-              spacing: 12,
-              runSpacing: 12,
-               children: _listenChoices.map((choice) {
-                 final choiceId = choice['lemma_id'].toString();
-                 final isSelected = _selectedListenId == choiceId;
-                 final isWrongChoice = _listenAnswerIsCorrect == false && isSelected;
-                 final choiceMeaning = choice['meaning_text'].toString();
-                 final choiceLemma = choice['lemma'].toString();
+            Wrap(
+               alignment: WrapAlignment.center,
+               spacing: 12,
+               runSpacing: 12,
+                 children: _listenChoices.map((choice) {
+                   final choiceId = choice['lemma_id'].toString();
+                   final isSelected = _selectedListenId == choiceId;
+                   final isWrongChoice = _listenAnswerIsCorrect == false && isSelected;
+                   final isCorrectChoice = _listenAnswerIsCorrect == true && isSelected;
+                   final shouldShowLemma = isWrongChoice || isCorrectChoice;
+                   final choiceMeaning = choice['meaning_text'].toString();
+                   final choiceLemma = choice['lemma'].toString();
 
-                 return ConstrainedBox(
-                   constraints: const BoxConstraints(
-                     minWidth: 140,
-                     maxWidth: 280,
-                   ),
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 16,
-                        ),
-                        backgroundColor: _listenChoiceColor(choice),
-                      ),
-                      onPressed: () {
-                        if (_isListenFeedbackInProgress) {
-                          return;
-                        }
-
-                        if (_listenAnswerIsCorrect == true) {
-                          return;
-                        }
-
-                        _handleListenChoice(choice);
-                      },
-                     child: Column(
-                       mainAxisSize: MainAxisSize.min,
-                       children: [
-                         Text(
-                           choiceMeaning,
-                           textAlign: TextAlign.center,
-                           softWrap: true,
-                           maxLines: 3,
-                           overflow: TextOverflow.ellipsis,
-                           style: const TextStyle(
-                             fontFamily: 'Open Sans',
-                             fontWeight: FontWeight.w600,
-                             color: AppPalette.parchment,
-                           ),
-                         ),
-                         if (isWrongChoice) ...[
-                           const SizedBox(height: 4),
-                           Text(
-                             choiceLemma,
-                             style: const TextStyle(
-                               fontFamily: 'Open Sans',
-                               fontWeight: FontWeight.w700,
-                               fontSize: 13,
-                               color: AppPalette.parchment,
-                               fontStyle: FontStyle.italic,
-                             ),
-                           ),
-                         ],
-                       ],
+                   return ConstrainedBox(
+                     constraints: const BoxConstraints(
+                       minWidth: 140,
+                       maxWidth: 280,
                      ),
-                   ),
-                 );
-               }).toList(),
+                      child: Stack(
+                        fit: StackFit.passthrough,
+                        children: [
+                          _wrapCorrectChoiceCelebration(
+                            isCorrectChoice: isCorrectChoice,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 16,
+                                ),
+                                backgroundColor: _listenChoiceColor(choice),
+                              ),
+                              onPressed: () {
+                                if (_isListenFeedbackInProgress) {
+                                  return;
+                                }
+
+                                if (_listenAnswerIsCorrect == true) {
+                                  return;
+                                }
+
+                                _handleListenChoice(choice);
+                              },
+                             child: Column(
+                               mainAxisSize: MainAxisSize.min,
+                               children: [
+                                 Text(
+                                   choiceMeaning,
+                                   textAlign: TextAlign.center,
+                                   softWrap: true,
+                                   maxLines: 3,
+                                   overflow: TextOverflow.ellipsis,
+                                   style: const TextStyle(
+                                     fontFamily: 'Open Sans',
+                                     fontWeight: FontWeight.w600,
+                                     color: AppPalette.parchment,
+                                   ),
+                                 ),
+                                 if (shouldShowLemma) ...[
+                                   const SizedBox(height: 6),
+                                   Text(
+                                     choiceLemma,
+                                     style: const TextStyle(
+                                       fontFamily: 'Open Sans',
+                                       fontWeight: FontWeight.w700,
+                                       fontSize: 13,
+                                       color: AppPalette.parchment,
+                                       fontStyle: FontStyle.italic,
+                                     ),
+                                   ),
+                                 ],
+                               ],
+                             ),
+                            ),
+                          ),
+                          if (isCorrectChoice && _isCorrectChoiceCelebrating)
+                            Positioned.fill(
+                              child: IgnorePointer(
+                                child: AnimatedBuilder(
+                                  animation: _correctChoiceController,
+                                  builder: (context, child) {
+                                    return CustomPaint(
+                                      key: const Key('listen-correct-choice-sheen'),
+                                      painter: _ReplayBorderSheen(
+                                        progress: _correctChoiceController.value,
+                                        borderRadius: 10,
+                                        color: AppPalette.parchment,
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                   );
+                }).toList(),
             ),
            const SizedBox(height: 24),
            Row(
@@ -1722,16 +1765,77 @@ class _GamePageState extends State<GamePage>
       _selectedRightId = null;
     });
   }
+
+  Widget _wrapCorrectChoiceCelebration({
+    required bool isCorrectChoice,
+    required Widget child,
+  }) {
+    if (!isCorrectChoice || !_isCorrectChoiceCelebrating) {
+      return child;
+    }
+
+    final correctScale = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween(begin: 1.0, end: 1.035),
+        weight: 40,
+      ),
+      TweenSequenceItem(
+        tween: Tween(begin: 1.035, end: 1.0),
+        weight: 60,
+      ),
+    ]).animate(
+      CurvedAnimation(
+        parent: _correctChoiceController,
+        curve: Curves.easeOutCubic,
+      ),
+    );
+
+    final correctRotation = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween(begin: 0.0, end: 0.026),
+        weight: 30,
+      ),
+      TweenSequenceItem(
+        tween: Tween(begin: 0.026, end: -0.018),
+        weight: 40,
+      ),
+      TweenSequenceItem(
+        tween: Tween(begin: -0.018, end: 0.0),
+        weight: 30,
+      ),
+    ]).animate(
+      CurvedAnimation(
+        parent: _correctChoiceController,
+        curve: Curves.easeInOut,
+      ),
+    );
+
+    return AnimatedBuilder(
+      animation: _correctChoiceController,
+      child: child,
+      builder: (context, card) {
+        return Transform.rotate(
+          angle: correctRotation.value,
+          child: Transform.scale(
+            scale: correctScale.value,
+            child: card,
+          ),
+        );
+      },
+    );
+  }
 }
 
 class _ReplayBorderSheen extends CustomPainter {
   const _ReplayBorderSheen({
     required this.progress,
     required this.borderRadius,
+    required this.color,
   });
 
   final double progress;
   final double borderRadius;
+  final Color color;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1750,7 +1854,7 @@ class _ReplayBorderSheen extends CustomPainter {
     final end = start + segmentLength;
 
     final paint = Paint()
-      ..color = AppPalette.amber.withValues(alpha: 0.45)
+      ..color = color.withValues(alpha: 0.55)
       ..strokeWidth = 1.7
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
@@ -1775,6 +1879,7 @@ class _ReplayBorderSheen extends CustomPainter {
   @override
   bool shouldRepaint(_ReplayBorderSheen oldDelegate) {
     return oldDelegate.progress != progress ||
-        oldDelegate.borderRadius != borderRadius;
+        oldDelegate.borderRadius != borderRadius ||
+        oldDelegate.color != color;
   }
 }

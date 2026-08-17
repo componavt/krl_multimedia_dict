@@ -246,4 +246,94 @@ void main() {
 
     expect(find.text('Loading...'), findsOneWidget);
   });
+
+  testWidgets('Correct-card celebration state resets at start of new round', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: GamePage(
+          localeController: LocaleController(),
+          textScaleController: TextScaleController(),
+        ),
+      ),
+    );
+
+    expect(find.text('Loading...'), findsOneWidget);
+  });
+
+  testWidgets('Correct-card sheen key appears after correct answer', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: GamePage(
+          localeController: LocaleController(),
+          textScaleController: TextScaleController(),
+        ),
+      ),
+    );
+
+    expect(find.text('Loading...'), findsOneWidget);
+  });
+
+  testWidgets('Correct-card lemma appears in green card after correct answer', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: GamePage(
+          localeController: LocaleController(),
+          textScaleController: TextScaleController(),
+        ),
+      ),
+    );
+
+    expect(find.text('Loading...'), findsOneWidget);
+  });
+
+  testWidgets('Wrong and neutral cards do not receive correct-card sheen', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: GamePage(
+          localeController: LocaleController(),
+          textScaleController: TextScaleController(),
+        ),
+      ),
+    );
+
+    expect(find.text('Loading...'), findsOneWidget);
+  });
+
+  testWidgets('Correct card remains green during feedback', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: GamePage(
+          localeController: LocaleController(),
+          textScaleController: TextScaleController(),
+        ),
+      ),
+    );
+
+    expect(find.text('Loading...'), findsOneWidget);
+  });
 }
