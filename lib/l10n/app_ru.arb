@@ -20,6 +20,19 @@
   "game": "Игра",
   "listenInstruction": "Прослушайте слово и выберите правильный вариант",
   "listen": "Слушать",
+  "archiveCard": "Карточка архива",
+  "@listenMeaningQuestion": {
+    "description": "Question prompt shown before player answers a listening comprehension round"
+  },
+  "listenMeaningQuestion": "Что означает это слово?",
+  "@listenCorrectAssociation": {
+    "description": "Association shown after correct answer, with lemma and meaning separated by em dash",
+    "placeholders": {
+      "lemma": {},
+      "meaning": {}
+    }
+  },
+  "listenCorrectAssociation": "{lemma} — {meaning}",
   "score": "Счёт",
   "bestScore": "Рекорд",
   "bestTime": "Лучшее время",
@@ -71,7 +84,6 @@
   "hintPattern": "{pattern}",
   "wrongChoiceMeaning": "{lemma} — {meaning}",
   "sessionCompleted": "Смена завершена",
-  "archiveCard": "Архивная карточка",
   "restoreArchiveCard": "Восстановите архивную карточку",
   "cardsNeedReview": "Карточки нуждаются в повторении",
   "scoreOutOf": "Очки: {score} / {total}",

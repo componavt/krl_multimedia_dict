@@ -70,6 +70,17 @@ class AppLocalizationsRu extends AppLocalizations {
   String get listen => 'Слушать';
 
   @override
+  String get archiveCard => 'Карточка архива';
+
+  @override
+  String get listenMeaningQuestion => 'Что означает это слово?';
+
+  @override
+  String listenCorrectAssociation(Object lemma, Object meaning) {
+    return '$lemma — $meaning';
+  }
+
+  @override
   String get score => 'Счёт';
 
   @override

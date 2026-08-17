@@ -70,6 +70,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get listen => 'Listen';
 
   @override
+  String get archiveCard => 'Archive card';
+
+  @override
+  String get listenMeaningQuestion => 'What does this word mean?';
+
+  @override
+  String listenCorrectAssociation(Object lemma, Object meaning) {
+    return '$lemma — $meaning';
+  }
+
+  @override
   String get score => 'Score';
 
   @override

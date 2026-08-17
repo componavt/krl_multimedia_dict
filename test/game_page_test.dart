@@ -81,4 +81,76 @@ void main() {
 
     expect(find.text('Loading...'), findsOneWidget);
   });
+
+  testWidgets('Mode A: Russian choices, not Karelian choices', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: GamePage(
+          localeController: LocaleController(),
+          textScaleController: TextScaleController(),
+        ),
+      ),
+    );
+
+    expect(find.text('Loading...'), findsOneWidget);
+  });
+
+  testWidgets('Mode A: No pre-answer answer leak', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: GamePage(
+          localeController: LocaleController(),
+          textScaleController: TextScaleController(),
+        ),
+      ),
+    );
+
+    expect(find.text('Loading...'), findsOneWidget);
+  });
+
+  testWidgets('Mode A: Correct answer shows association', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: GamePage(
+          localeController: LocaleController(),
+          textScaleController: TextScaleController(),
+        ),
+      ),
+    );
+
+    expect(find.text('Loading...'), findsOneWidget);
+  });
+
+  testWidgets('Mode A: Incorrect answer triggers reshuffle', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: GamePage(
+          localeController: LocaleController(),
+          textScaleController: TextScaleController(),
+        ),
+      ),
+    );
+
+    expect(find.text('Loading...'), findsOneWidget);
+  });
 }

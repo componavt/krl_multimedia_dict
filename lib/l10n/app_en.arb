@@ -20,6 +20,19 @@
   "game": "Game",
   "listenInstruction": "Listen to the word and choose the correct answer",
   "listen": "Listen",
+  "archiveCard": "Archive card",
+  "@listenMeaningQuestion": {
+    "description": "Question prompt shown before player answers a listening comprehension round"
+  },
+  "listenMeaningQuestion": "What does this word mean?",
+  "@listenCorrectAssociation": {
+    "description": "Association shown after correct answer, with lemma and meaning separated by em dash",
+    "placeholders": {
+      "lemma": {},
+      "meaning": {}
+    }
+  },
+  "listenCorrectAssociation": "{lemma} — {meaning}",
   "score": "Score",
   "bestScore": "Best score",
   "bestTime": "Best time",

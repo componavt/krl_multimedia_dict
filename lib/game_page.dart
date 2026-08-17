@@ -260,6 +260,13 @@ class _GamePageState extends State<GamePage>
     return AppPalette.parchment;
   }
 
+  String _normalizedMeaning(Map<String, dynamic> entry) {
+    return (entry['meaning_text'] ?? '')
+        .toString()
+        .trim()
+        .toLowerCase();
+  }
+
   Future<void> _startListenRound() async {
     if (_listenRoundNumber >= _totalListenRounds || _isListenSessionCompleted) {
       _completeListenSession();
@@ -300,24 +307,49 @@ class _GamePageState extends State<GamePage>
 
     final correct = availableEntries[random.nextInt(availableEntries.length)];
     final choices = <Map<String, dynamic>>[correct];
+    final usedMeanings = <String>{
+      _normalizedMeaning(correct),
+    };
 
-    final distractors =
-        audioEnabledEntries
-            .where(
-              (entry) =>
-                  entry['lemma_id'].toString() !=
-                  correct['lemma_id'].toString(),
-            )
-            .toList()
-          ..shuffle(random);
+    final distractorCandidates = audioEnabledEntries
+        .where((entry) {
+          final entryId = entry['lemma_id'].toString();
+          final normalizedMeaning = _normalizedMeaning(entry);
 
-    choices.addAll(distractors.take(3));
+          return entryId != correct['lemma_id'].toString() &&
+              normalizedMeaning.isNotEmpty &&
+              !usedMeanings.contains(normalizedMeaning);
+        })
+        .toList()
+      ..shuffle(random);
+
+    for (final distractor in distractorCandidates) {
+      if (choices.length == 4) break;
+
+      choices.add(distractor);
+      usedMeanings.add(_normalizedMeaning(distractor));
+    }
+
+    if (choices.length < 4) {
+      if (!mounted) return;
+
+      final l10n = AppLocalizations.of(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.notEnoughEntries),
+          backgroundColor: AppPalette.brickRed,
+        ),
+      );
+      return;
+    }
+
     choices.shuffle(random);
 
     final lemmaId = correct['lemma_id'].toString();
     _usedEntryIds.add(lemmaId);
 
     if (!mounted) return;
+
     setState(() {
       _listenEntry = correct;
       _listenChoices = choices;
@@ -327,6 +359,7 @@ class _GamePageState extends State<GamePage>
     });
 
     if (!mounted) return;
+
     await _playEntryAudio(correct);
   }
 
@@ -837,7 +870,9 @@ class _GamePageState extends State<GamePage>
       _listenScore++;
     });
 
-    final association = _listenEntry!['meaning_text'].toString();
+    final lemma = _listenEntry!['lemma'].toString();
+    final meaning = _listenEntry!['meaning_text'].toString();
+    final associationText = l10n.listenCorrectAssociation(lemma, meaning);
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -853,7 +888,7 @@ class _GamePageState extends State<GamePage>
               ),
             ),
             Text(
-              association,
+              associationText,
               style: const TextStyle(
                 fontStyle: FontStyle.italic,
                 fontFamily: 'Open Sans',
@@ -966,7 +1001,7 @@ class _GamePageState extends State<GamePage>
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                '${l10n.listenAndGuess}: ${_listenRoundNumber + 1} / $_totalListenRounds',
+                '${l10n.archiveCard}: ${_listenRoundNumber + 1} / $_totalListenRounds',
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -986,185 +1021,209 @@ class _GamePageState extends State<GamePage>
               minHeight: 12,
             ),
            ),
-           const SizedBox(height: 24),
-           Container(
-             width: double.infinity,
-             margin: const EdgeInsets.only(bottom: 20),
-             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-             decoration: BoxDecoration(
-               color: AppPalette.parchment,
-               borderRadius: BorderRadius.circular(12),
-               border: Border.all(color: AppPalette.amber, width: 1.2),
-             ),
-             child: Text(
-               _listenEntry!['meaning_text'].toString(),
-               textAlign: TextAlign.center,
-               style: const TextStyle(
-                 color: AppPalette.ink,
-                 fontFamily: 'Open Sans',
-                 fontWeight: FontWeight.w700,
-                 fontSize: 22,
-               ),
-             ),
-           ),
-           Row(
-             mainAxisAlignment: MainAxisAlignment.center,
-             children: [
-               ElevatedButton(
-                 style: ElevatedButton.styleFrom(
-                   backgroundColor: AppPalette.mutedBrown,
-                   foregroundColor: AppPalette.parchment,
-                   padding: const EdgeInsets.symmetric(
-                     horizontal: 24,
-                     vertical: 16,
-                   ),
-                 ),
-                 onPressed: () {
-                   if (_listenEntry != null) {
-                     _playEntryAudio(_listenEntry!);
-                   }
-                 },
-                 child: Row(
-                   mainAxisSize: MainAxisSize.min,
-                   children: [
-                     const Icon(
-                       Icons.play_arrow_rounded,
-                       size: 24,
-                       color: AppPalette.parchment,
-                     ),
-                     const SizedBox(width: 8),
-                     Text(
-                       l10n.listen,
-                       style: const TextStyle(color: AppPalette.parchment),
-                     ),
-                   ],
-                 ),
-               ),
-             ],
-           ),
-           const SizedBox(height: 32),
-           for (final choice in _listenChoices)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 16,
-                  ),
-                  backgroundColor: _listenChoiceColor(choice),
-                ),
-                onPressed: _listenAnswerIsCorrect == true
-                    ? null
-                    : () {
-                        final selectedId = choice['lemma_id'].toString();
-                        final correctId = _listenEntry!['lemma_id'].toString();
-
-                        if (_selectedListenId == selectedId) {
-                          return;
-                        }
-
-                        if (!mounted) return;
-
-                        setState(() {
-                          _selectedListenId = selectedId;
-                          _listenAnswerIsCorrect = selectedId == correctId;
-                        });
-
-                        if (!mounted) return;
-
-                        if (selectedId == correctId) {
-                          _listenStreak++;
-                          _handleListenCorrect();
-                        } else {
-                          _handleListenWrong();
-                        }
-                      },
-                child: Text(
-                  choice['lemma'].toString(),
-                  style: const TextStyle(
-                    fontFamily: 'Open Sans',
-                    fontWeight: FontWeight.w600,
-                    color: AppPalette.parchment,
-                  ),
+            const SizedBox(height: 24),
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              decoration: BoxDecoration(
+                color: AppPalette.parchment,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppPalette.amber, width: 1.2),
+              ),
+              child: Text(
+                _listenEntry!['lemma'].toString(),
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: AppPalette.ink,
+                  fontFamily: 'Open Sans',
+                  fontWeight: FontWeight.w700,
+                  fontSize: 22,
                 ),
               ),
             ),
-          const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              Column(
-                children: [
-                  Text(
-                    l10n.scoreOutOf(_listenScore, _totalListenRounds),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                      fontFamily: 'Open Sans',
-                      color: AppPalette.parchment,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppPalette.mutedBrown,
+                    foregroundColor: AppPalette.parchment,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 16,
                     ),
                   ),
-                  Text(
-                    '$_listenScore',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 24,
-                      fontFamily: 'Open Sans',
-                      color: AppPalette.parchment,
-                    ),
-                  ),
-                ],
-              ),
-              Column(
-                children: [
-                  Text(
-                    l10n.currentStreak(_listenStreak),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                      fontFamily: 'Open Sans',
-                      color: AppPalette.parchment,
-                    ),
-                  ),
-                  Text(
-                    '$_listenStreak',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 24,
-                      fontFamily: 'Open Sans',
-                      color: AppPalette.parchment,
-                    ),
-                  ),
-                ],
-              ),
-              if (_listenBestStreak > 0)
-                Column(
-                  children: [
-                    Text(
-                      l10n.bestStreakLabel(_listenBestStreak),
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                        fontFamily: 'Open Sans',
+                  onPressed: () {
+                    if (_listenEntry != null) {
+                      _playEntryAudio(_listenEntry!);
+                    }
+                  },
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.play_arrow_rounded,
+                        size: 24,
                         color: AppPalette.parchment,
                       ),
-                    ),
-                    Text(
-                      '$_listenBestStreak',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 24,
-                        fontFamily: 'Open Sans',
-                        color: AppPalette.parchment,
+                      const SizedBox(width: 8),
+                      Text(
+                        l10n.listen,
+                        style: const TextStyle(color: AppPalette.parchment),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-            ],
-          ),
-        ],
-      ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              l10n.listenMeaningQuestion,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontFamily: 'Open Sans',
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+                color: AppPalette.ink,
+              ),
+            ),
+            const SizedBox(height: 24),
+           Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 12,
+              runSpacing: 12,
+              children: _listenChoices.map((choice) {
+                return ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    minWidth: 140,
+                    maxWidth: 280,
+                  ),
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 16,
+                      ),
+                      backgroundColor: _listenChoiceColor(choice),
+                    ),
+                    onPressed: _listenAnswerIsCorrect == true
+                        ? null
+                        : () {
+                            final selectedId = choice['lemma_id'].toString();
+                            final correctId = _listenEntry!['lemma_id'].toString();
+
+                            if (_selectedListenId == selectedId) {
+                              return;
+                            }
+
+                            if (!mounted) return;
+
+                            setState(() {
+                              _selectedListenId = selectedId;
+                              _listenAnswerIsCorrect = selectedId == correctId;
+                            });
+
+                            if (!mounted) return;
+
+                            if (selectedId == correctId) {
+                              _listenStreak++;
+                              _handleListenCorrect();
+                            } else {
+                              _handleListenWrong();
+                            }
+                          },
+                    child: Text(
+                      choice['meaning_text'].toString(),
+                      textAlign: TextAlign.center,
+                      softWrap: true,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontFamily: 'Open Sans',
+                        fontWeight: FontWeight.w600,
+                        color: AppPalette.parchment,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+           const SizedBox(height: 24),
+           Row(
+             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+             children: [
+               Column(
+                 children: [
+                   Text(
+                     l10n.scoreOutOf(_listenScore, _totalListenRounds),
+                     style: const TextStyle(
+                       fontWeight: FontWeight.w600,
+                       fontSize: 14,
+                       fontFamily: 'Open Sans',
+                       color: AppPalette.parchment,
+                     ),
+                   ),
+                   Text(
+                     '$_listenScore',
+                     style: const TextStyle(
+                       fontWeight: FontWeight.w700,
+                       fontSize: 24,
+                       fontFamily: 'Open Sans',
+                       color: AppPalette.parchment,
+                     ),
+                   ),
+                 ],
+               ),
+               Column(
+                 children: [
+                   Text(
+                     l10n.currentStreak(_listenStreak),
+                     style: const TextStyle(
+                       fontWeight: FontWeight.w600,
+                       fontSize: 14,
+                       fontFamily: 'Open Sans',
+                       color: AppPalette.parchment,
+                     ),
+                   ),
+                   Text(
+                     '$_listenStreak',
+                     style: const TextStyle(
+                       fontWeight: FontWeight.w700,
+                       fontSize: 24,
+                       fontFamily: 'Open Sans',
+                       color: AppPalette.parchment,
+                     ),
+                   ),
+                 ],
+               ),
+               if (_listenBestStreak > 0)
+                 Column(
+                   children: [
+                     Text(
+                       l10n.bestStreakLabel(_listenBestStreak),
+                       style: const TextStyle(
+                         fontWeight: FontWeight.w600,
+                         fontSize: 14,
+                         fontFamily: 'Open Sans',
+                         color: AppPalette.parchment,
+                       ),
+                     ),
+                     Text(
+                       '$_listenBestStreak',
+                       style: const TextStyle(
+                         fontWeight: FontWeight.w700,
+                         fontSize: 24,
+                         fontFamily: 'Open Sans',
+                         color: AppPalette.parchment,
+                       ),
+                     ),
+                   ],
+                 ),
+             ],
+           ),
+         ],
+       ),
     );
   }
 

@@ -218,6 +218,24 @@ abstract class AppLocalizations {
   /// **'Listen'**
   String get listen;
 
+  /// No description provided for @archiveCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive card'**
+  String get archiveCard;
+
+  /// Question prompt shown before player answers a listening comprehension round
+  ///
+  /// In en, this message translates to:
+  /// **'What does this word mean?'**
+  String get listenMeaningQuestion;
+
+  /// Association shown after correct answer, with lemma and meaning separated by em dash
+  ///
+  /// In en, this message translates to:
+  /// **'{lemma} — {meaning}'**
+  String listenCorrectAssociation(Object lemma, Object meaning);
+
   /// No description provided for @score.
   ///
   /// In en, this message translates to:
