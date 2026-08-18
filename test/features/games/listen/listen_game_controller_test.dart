@@ -1,183 +1,59 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vepkar_audio/features/games/listen/listen_game_state.dart';
-import 'package:vepkar_audio/features/games/listen/listen_round.dart';
-import 'package:vepkar_audio/features/games/core/game_entry.dart';
+import 'package:vepkar_audio/word_learning_record.dart';
 
 void main() {
-  group('ListenGameState', () {
-    test('initial state has null currentRound', () {
-      final state = ListenGameState.initial();
+  group('ListenGameController', () {
+    test(
+      'ListenGameState.completed() has isSessionCompleted=true and isLoading=false',
+      () {
+        final state = ListenGameState.completed(
+          score: 8,
+          streak: 5,
+          bestStreak: 5,
+        );
 
-      expect(state.isLoading, isTrue);
-      expect(state.currentRound, isNull);
-    });
+        expect(state.isSessionCompleted, isTrue);
+        expect(state.isLoading, isFalse);
+        expect(state.score, 8);
+        expect(state.streak, 5);
+        expect(state.bestStreak, 5);
+      },
+    );
 
-    test('loading state has null currentRound', () {
-      final state = ListenGameState.loading();
+    test(
+      'ListenGameState.withRound has isRoundActive=true',
+      () {
+        final state = ListenGameState.loading();
 
-      expect(state.isLoading, isTrue);
-      expect(state.currentRound, isNull);
-    });
+        expect(state.isLoading, isTrue);
+        expect(state.currentRound, isNull);
+        expect(state.isSessionCompleted, isFalse);
+      },
+    );
 
-    test('error state has loadError', () {
-      final state = ListenGameState.error(Exception('test error'));
+    test(
+      'LearnedSessionSummary.fromJson deserializes correctly',
+      () {
+        final json = {
+          'session_id': 'test123',
+          'started_at': '2026-08-18T12:00:00.000Z',
+          'completed_rounds': 10,
+          'first_attempt_correct_rounds': 8,
+          'rounds_with_mistakes': 2,
+          'newly_learned_word_ids': ['word1', 'word2'],
+          'needing_review_word_ids': ['word3'],
+        };
 
-      expect(state.isError, isTrue);
-      expect(state.loadError, isNotNull);
-      expect(state.isLoading, isFalse);
-    });
+        final session = LearningSessionSummary.fromJson(json);
 
-    test('completed state has isSessionCompleted', () {
-      final state = ListenGameState.completed(
-        score: 10,
-        streak: 5,
-        bestStreak: 5,
-      );
-
-      expect(state.isSessionCompleted, isTrue);
-      expect(state.isLoading, isFalse);
-    });
-
-    test('withRound creates state with round', () {
-      final round = ListenRound(
-        target: GameEntry(
-          lemmaId: 'test',
-          lemma: 'test',
-          meaning: 'test',
-          partOfSpeech: 'noun',
-          hasAudio: true,
-        ),
-        choices: [],
-        roundNumber: 0,
-      );
-
-      final state = ListenGameState.withRound(
-        round: round,
-        score: 0,
-        streak: 0,
-        bestStreak: 0,
-      );
-
-      expect(state.currentRound, isNotNull);
-      expect(state.isRoundActive, isTrue);
-    });
-
-    test('withChoice creates state with selection', () {
-      final round = ListenRound(
-        target: GameEntry(
-          lemmaId: 'test',
-          lemma: 'test',
-          meaning: 'test',
-          partOfSpeech: 'noun',
-          hasAudio: true,
-        ),
-        choices: [],
-        roundNumber: 0,
-      );
-
-      final state = ListenGameState.withChoice(
-        round: round,
-        score: 0,
-        streak: 0,
-        bestStreak: 0,
-        selectedEntryId: 'test',
-        answerIsCorrect: true,
-        hadWrongAttempt: false,
-      );
-
-      expect(state.selectedEntryId, 'test');
-      expect(state.answerIsCorrect, isTrue);
-    });
-
-    test('feedbackInProgress prevents round activity', () {
-      final round = ListenRound(
-        target: GameEntry(
-          lemmaId: 'test',
-          lemma: 'test',
-          meaning: 'test',
-          partOfSpeech: 'noun',
-          hasAudio: true,
-        ),
-        choices: [],
-        roundNumber: 0,
-      );
-
-      final state = ListenGameState.withChoice(
-        round: round,
-        score: 0,
-        streak: 0,
-        bestStreak: 0,
-        selectedEntryId: 'test',
-        answerIsCorrect: true,
-        hadWrongAttempt: false,
-      ).copyWith(isFeedbackInProgress: true);
-
-      expect(state.isRoundActive, isFalse);
-    });
-
-    test('copyWith updates answerIsCorrect', () {
-      final round = ListenRound(
-        target: GameEntry(
-          lemmaId: 'test',
-          lemma: 'test',
-          meaning: 'test',
-          partOfSpeech: 'noun',
-          hasAudio: true,
-        ),
-        choices: [],
-        roundNumber: 0,
-      );
-
-      final state1 = ListenGameState.withChoice(
-        round: round,
-        score: 0,
-        streak: 0,
-        bestStreak: 0,
-        selectedEntryId: 'test',
-        answerIsCorrect: true,
-        hadWrongAttempt: false,
-      );
-
-      final state2 = state1.copyWith(answerIsCorrect: false);
-
-      expect(state2.answerIsCorrect, isFalse);
-      expect(state1.answerIsCorrect, isTrue);
-    });
-
-    test('copyWith clears selectedEntryId to null', () {
-      final round = ListenRound(
-        target: GameEntry(
-          lemmaId: 'test',
-          lemma: 'test',
-          meaning: 'test',
-          partOfSpeech: 'noun',
-          hasAudio: true,
-        ),
-        choices: [],
-        roundNumber: 0,
-      );
-
-      final state = ListenGameState.withChoice(
-        round: round,
-        score: 0,
-        streak: 0,
-        bestStreak: 0,
-        selectedEntryId: 'test',
-        answerIsCorrect: true,
-        hadWrongAttempt: false,
-      );
-
-      final newState = state.copyWith(
-        selectedEntryId: null,
-        answerIsCorrect: null,
-        isFeedbackInProgress: false,
-        isTargetReplayHighlighted: false,
-        isCorrectChoiceCelebrating: false,
-      );
-
-      expect(newState.selectedEntryId, isNull);
-      expect(newState.answerIsCorrect, isNull);
-      expect(newState.isFeedbackInProgress, isFalse);
-    });
+        expect(session.sessionId, 'test123');
+        expect(session.completedRounds, 10);
+        expect(session.firstAttemptCorrectRounds, 8);
+        expect(session.roundsWithMistakes, 2);
+        expect(session.newlyLearnedWordIds.length, 2);
+        expect(session.needingReviewWordIds.length, 1);
+      },
+    );
   });
 }

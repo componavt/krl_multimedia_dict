@@ -26,7 +26,6 @@ class ListenGameController extends ChangeNotifier {
 
   final Set<String> _usedEntryIds = <String>{};
   int _roundNumber = 0;
-  bool _isSessionCompleted = false;
   int _score = 0;
   int _streak = 0;
   int _bestStreak = 0;
@@ -51,13 +50,18 @@ class ListenGameController extends ChangeNotifier {
     _streak = 0;
     _bestStreak = 0;
     _usedEntryIds.clear();
-    _isSessionCompleted = false;
     await _startRound();
   }
 
   Future<void> completeSession() async {
     await learningRepository.completeActiveSession();
-    _isSessionCompleted = true;
+
+    _currentState = ListenGameState.completed(
+      score: _score,
+      streak: _streak,
+      bestStreak: _bestStreak,
+    );
+
     notifyListeners();
   }
 
@@ -66,9 +70,9 @@ class ListenGameController extends ChangeNotifier {
     _roundNumber = 0;
     _score = 0;
     _streak = 0;
+    _bestStreak = 0;
     _usedEntryIds.clear();
-    _isSessionCompleted = false;
-    notifyListeners();
+    await _startRound();
   }
 
   Future<void> choose(GameEntry entry) async {
@@ -216,7 +220,7 @@ class ListenGameController extends ChangeNotifier {
   }
 
   Future<void> _startRound() async {
-    if (_roundNumber >= _totalListenRounds || _isSessionCompleted) {
+    if (_roundNumber >= _totalListenRounds) {
       await completeSession();
       return;
     }

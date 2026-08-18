@@ -148,7 +148,8 @@ class _MatchGameViewState extends State<MatchGameView> {
           matchedCount: state.matchedPairs.length,
           totalCount: 5,
         ),
-        Expanded(
+        Flexible(
+          fit: FlexFit.loose,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Row(
@@ -177,7 +178,7 @@ class _MatchGameViewState extends State<MatchGameView> {
             ),
           ),
         ),
-        MatchedPairsFooter(matchedPairs: state.matchedPairs),
+        Expanded(child: MatchedPairsFooter(matchedPairs: state.matchedPairs)),
       ],
     );
   }
@@ -203,45 +204,45 @@ class _MatchGameViewState extends State<MatchGameView> {
             ),
           ),
         ),
-        Expanded(
-          child: ListView.builder(
-            itemCount: cards.length,
-            itemBuilder: (context, index) {
-              final card = cards[index];
-              final cardId = card.lemmaId;
+        ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: cards.length,
+          itemBuilder: (context, index) {
+            final card = cards[index];
+            final cardId = card.lemmaId;
 
-              if (state.matchedPairs.any((p) => p.id == cardId)) {
-                return const SizedBox.shrink();
-              }
+            if (state.matchedPairs.any((p) => p.id == cardId)) {
+              return const SizedBox.shrink();
+            }
 
-              if (isLeftSide) {
-                return MatchChoiceCard(
-                  gameEntry: card,
-                  column: MatchCardColumn.karelian,
-                  onTap: () {
-                    widget.controller.selectLeft(card);
-                  },
-                  isSelected: state.selectedLeftId == cardId,
-                  isMatched: false,
-                  isWrong: state.wrongLeftId == cardId,
-                  backgroundColor: backgroundColor,
-                );
-              } else {
-                return MatchChoiceCard(
-                  gameEntry: card,
-                  column: MatchCardColumn.russian,
-                  onTap: () {
-                    widget.controller.selectRight(card);
-                  },
-                  isSelected: state.selectedRightId == cardId,
-                  isMatched: false,
-                  isWrong: state.wrongRightId == cardId,
-                  backgroundColor: backgroundColor,
-                  audioHintEntryId: state.hintEntryId,
-                );
-              }
-            },
-          ),
+            if (isLeftSide) {
+              return MatchChoiceCard(
+                gameEntry: card,
+                column: MatchCardColumn.karelian,
+                onTap: () {
+                  widget.controller.selectLeft(card);
+                },
+                isSelected: state.selectedLeftId == cardId,
+                isMatched: false,
+                isWrong: state.wrongLeftId == cardId,
+                backgroundColor: backgroundColor,
+              );
+            } else {
+              return MatchChoiceCard(
+                gameEntry: card,
+                column: MatchCardColumn.russian,
+                onTap: () {
+                  widget.controller.selectRight(card);
+                },
+                isSelected: state.selectedRightId == cardId,
+                isMatched: false,
+                isWrong: state.wrongRightId == cardId,
+                backgroundColor: backgroundColor,
+                audioHintEntryId: state.hintEntryId,
+              );
+            }
+          },
         ),
       ],
     );

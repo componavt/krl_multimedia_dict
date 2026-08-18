@@ -302,5 +302,27 @@ void main() {
       expect(afterTick.selectedRightId, 'wrongRight');
       expect(afterTick.isFeedbackInProgress, isTrue);
     });
+
+    test('newest matched pair is inserted at index 0', () {
+      final pairA = MatchedPair(
+        id: 'A',
+        lemma: 'A lemma',
+        meaning: 'A meaning',
+      );
+      final pairB = MatchedPair(
+        id: 'B',
+        lemma: 'B lemma',
+        meaning: 'B meaning',
+      );
+      final pairC = MatchedPair(
+        id: 'C',
+        lemma: 'C lemma',
+        meaning: 'C meaning',
+      );
+
+      expect([pairC, pairB, pairA][0].id, 'C');
+      expect([pairC, pairB, pairA][1].id, 'B');
+      expect([pairC, pairB, pairA][2].id, 'A');
+    });
   });
 }

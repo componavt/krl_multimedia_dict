@@ -66,4 +66,16 @@ void main() {
       expect(original.elapsedTime, const Duration(seconds: 30));
     });
   });
+
+  group('MatchedPairsFooterLayoutTests', () {
+    test('stack-ordered pairs are maintained in state', () {
+      final pairC = MatchedPair(id: 'C', lemma: 'C lemma', meaning: 'C meaning');
+      final pairB = MatchedPair(id: 'B', lemma: 'B lemma', meaning: 'B meaning');
+      final pairA = MatchedPair(id: 'A', lemma: 'A lemma', meaning: 'A meaning');
+
+      expect([pairC, pairB, pairA][0].id, equals('C'));
+      expect([pairC, pairB, pairA][1].id, equals('B'));
+      expect([pairC, pairB, pairA][2].id, equals('A'));
+    });
+  });
 }

@@ -202,7 +202,8 @@ class MatchGameController extends ChangeNotifier {
     if (leftEntry.lemmaId == rightEntry.lemmaId) {
       _matchedEntryIds.add(leftEntry.lemmaId);
 
-      _matchedPairs.add(
+      _matchedPairs.insert(
+        0,
         MatchedPair(
           id: leftEntry.lemmaId,
           lemma: leftEntry.lemma,
