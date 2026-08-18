@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vepkar_audio/features/games/match/match_game_state.dart';
 import 'package:vepkar_audio/features/games/match/match_round.dart';
+import 'package:vepkar_audio/features/games/core/game_models.dart';
 
 void main() {
   group('MatchGameState', () {
@@ -30,6 +31,40 @@ void main() {
       expect(state.isLoading, isFalse);
       expect(state.currentRound, isNotNull);
       expect(state.allMatched, isFalse);
+    });
+
+    test('completed state has isSessionCompleted true and isLoading false', () {
+      final state = MatchGameState.completed(
+        matchedPairs: List.generate(
+          5,
+          (i) =>
+              MatchedPair(id: 'id$i', lemma: 'lemma$i', meaning: 'meaning$i'),
+        ),
+        matchedEntryIds: {'id0', 'id1', 'id2', 'id3', 'id4'},
+        elapsedTime: const Duration(seconds: 30),
+        bestTimeSeconds: 30,
+      );
+
+      expect(state.isSessionCompleted, isTrue);
+      expect(state.isLoading, isFalse);
+      expect(state.allMatched, isTrue);
+      expect(state.matchedPairs.length, equals(5));
+      expect(state.elapsedTime, const Duration(seconds: 30));
+      expect(state.bestTimeSeconds, equals(30));
+    });
+
+    test('completed state copyWith preserves isSessionCompleted', () {
+      final state = MatchGameState.completed(
+        matchedPairs: [],
+        matchedEntryIds: <String>{},
+        elapsedTime: Duration.zero,
+        bestTimeSeconds: 0,
+      );
+
+      final newState = state.copyWith(bestTimeSeconds: 25);
+
+      expect(newState.isSessionCompleted, isTrue);
+      expect(newState.isLoading, isFalse);
     });
 
     test('matchedEntryIds tracks matched pairs', () {

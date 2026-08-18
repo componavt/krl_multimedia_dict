@@ -11,9 +11,14 @@ import '../core/game_entry.dart';
 import '../core/game_models.dart';
 
 class MatchGameView extends StatefulWidget {
-  const MatchGameView({super.key, required this.controller});
+  const MatchGameView({
+    super.key,
+    required this.controller,
+    required this.onExit,
+  });
 
   final MatchGameController controller;
+  final VoidCallback onExit;
 
   @override
   State<MatchGameView> createState() => _MatchGameViewState();
@@ -66,6 +71,10 @@ class _MatchGameViewState extends State<MatchGameView> {
           );
         }
 
+        if (state.isSessionCompleted) {
+          return _buildMatchComplete(l10n, state);
+        }
+
         if (state.isLoading) {
           return Center(
             child: Column(
@@ -77,10 +86,6 @@ class _MatchGameViewState extends State<MatchGameView> {
               ],
             ),
           );
-        }
-
-        if (state.allMatched) {
-          return _buildMatchComplete(l10n, state);
         }
 
         return _buildMatchMode(l10n, state);
@@ -124,7 +129,7 @@ class _MatchGameViewState extends State<MatchGameView> {
             const SizedBox(height: 8),
             ElevatedButton(
               onPressed: () {
-                widget.controller.startRound();
+                widget.onExit();
               },
               child: Text(l10n.backToGames),
             ),

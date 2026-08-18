@@ -130,6 +130,11 @@ class MatchGameController extends ChangeNotifier {
     _startTime = DateTime.now();
 
     _timer = Timer.periodic(const Duration(seconds: 1), (Timer t) {
+      if (_state.isSessionCompleted) {
+        t.cancel();
+        return;
+      }
+
       if (_currentRound != null) {
         final newElapsedTime = DateTime.now().difference(_startTime!);
         _state = _state.copyWith(elapsedTime: newElapsedTime);
@@ -215,19 +220,23 @@ class MatchGameController extends ChangeNotifier {
 
       if (_matchedPairs.length == _totalPairs) {
         _timer?.cancel();
+
         final elapsedTime = DateTime.now().difference(_startTime!);
         final seconds = elapsedTime.inSeconds;
+
         if (_bestTimeSeconds == 0 || seconds < _bestTimeSeconds) {
           _bestTimeSeconds = seconds;
         }
 
         _state = MatchGameState.completed(
-          matchedPairs: _matchedPairs,
-          matchedEntryIds: _matchedEntryIds,
+          matchedPairs: List<MatchedPair>.unmodifiable(_matchedPairs),
+          matchedEntryIds: Set<String>.unmodifiable(_matchedEntryIds),
           elapsedTime: elapsedTime,
           bestTimeSeconds: _bestTimeSeconds,
         );
+
         notifyListeners();
+        return;
       } else {
         _state = MatchGameState.withMatchResult(
           round: _currentRound!,

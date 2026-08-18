@@ -20,6 +20,7 @@ class MatchGameState {
     this.elapsedTime = Duration.zero,
     this.bestTimeSeconds = 0,
     this.hintEntryId,
+    this.isSessionCompleted = false,
   });
 
   factory MatchGameState.loading() {
@@ -186,6 +187,7 @@ class MatchGameState {
       matchedEntryIds: matchedEntryIds,
       elapsedTime: elapsedTime,
       bestTimeSeconds: bestTimeSeconds ?? 0,
+      isSessionCompleted: true,
     );
   }
 
@@ -205,9 +207,10 @@ class MatchGameState {
   final Duration elapsedTime;
   final int? bestTimeSeconds;
   final String? hintEntryId;
+  final bool isSessionCompleted;
 
   bool get isError => loadError != null;
-  bool get isLoading => currentRound == null && !isError;
+  bool get isLoading => currentRound == null && !isError && !isSessionCompleted;
   bool get allMatched => matchedPairs.length == 5;
 
   static const Object _sentinelUnset = Object();
@@ -229,6 +232,7 @@ class MatchGameState {
     Duration? elapsedTime,
     int? bestTimeSeconds,
     String? hintEntryId,
+    bool? isSessionCompleted,
   }) {
     return MatchGameState._(
       loadError: loadError ?? this.loadError,
@@ -251,11 +255,12 @@ class MatchGameState {
       elapsedTime: elapsedTime ?? this.elapsedTime,
       bestTimeSeconds: bestTimeSeconds ?? this.bestTimeSeconds,
       hintEntryId: hintEntryId ?? this.hintEntryId,
+      isSessionCompleted: isSessionCompleted ?? this.isSessionCompleted,
     );
   }
 
   @override
   String toString() {
-    return 'MatchGameState{loadError: $loadError, currentRound: $currentRound, matchedPairs: $matchedPairs, matchedEntryIds: $matchedEntryIds, selectedLeftId: $selectedLeftId, selectedRightId: $selectedRightId, isFeedbackInProgress: $isFeedbackInProgress, isCheckingMatch: $isCheckingMatch, allMatched: $allMatched, elapsedTime: $elapsedTime, bestTimeSeconds: $bestTimeSeconds}';
+    return 'MatchGameState{loadError: $loadError, currentRound: $currentRound, matchedPairs: $matchedPairs, matchedEntryIds: $matchedEntryIds, selectedLeftId: $selectedLeftId, selectedRightId: $selectedRightId, isFeedbackInProgress: $isFeedbackInProgress, isCheckingMatch: $isCheckingMatch, allMatched: $allMatched, elapsedTime: $elapsedTime, bestTimeSeconds: $bestTimeSeconds, isSessionCompleted: $isSessionCompleted}';
   }
 }
