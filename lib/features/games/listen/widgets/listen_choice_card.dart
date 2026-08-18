@@ -43,6 +43,8 @@ class ListenChoiceCard extends StatelessWidget {
                   vertical: 16,
                 ),
                 backgroundColor: color,
+                disabledBackgroundColor: color,
+                disabledForegroundColor: AppPalette.parchment,
                 textStyle: const TextStyle(
                   fontFamily: 'Open Sans',
                   fontWeight: FontWeight.w600,

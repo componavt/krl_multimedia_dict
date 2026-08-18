@@ -132,12 +132,7 @@ class MatchGameController extends ChangeNotifier {
     _timer = Timer.periodic(const Duration(seconds: 1), (Timer t) {
       if (_currentRound != null) {
         final newElapsedTime = DateTime.now().difference(_startTime!);
-        _state = MatchGameState.withElapsed(
-          round: _currentRound!,
-          matchedPairs: _matchedPairs,
-          matchedEntryIds: _matchedEntryIds,
-          elapsedTime: newElapsedTime,
-        );
+        _state = _state.copyWith(elapsedTime: newElapsedTime);
         notifyListeners();
       } else {
         t.cancel();
@@ -156,15 +151,7 @@ class MatchGameController extends ChangeNotifier {
         ? null
         : entry.lemmaId;
 
-    _state = MatchGameState.withSelection(
-      round: _currentRound!,
-      matchedPairs: _matchedPairs,
-      matchedEntryIds: _matchedEntryIds,
-      selectedLeftId: selectedId,
-      leftCards: _currentRound!.leftCards,
-      rightCards: _currentRound!.rightCards,
-      elapsedTime: _elapsedTime,
-    );
+    _state = _state.copyWith(selectedLeftId: selectedId);
     notifyListeners();
 
     _checkMatch();
@@ -179,15 +166,7 @@ class MatchGameController extends ChangeNotifier {
         ? null
         : entry.lemmaId;
 
-    _state = MatchGameState.withSelection(
-      round: _currentRound!,
-      matchedPairs: _matchedPairs,
-      matchedEntryIds: _matchedEntryIds,
-      selectedRightId: selectedId,
-      leftCards: _currentRound!.leftCards,
-      rightCards: _currentRound!.rightCards,
-      elapsedTime: _elapsedTime,
-    );
+    _state = _state.copyWith(selectedRightId: selectedId);
     notifyListeners();
 
     if (entry.lemmaId == _currentRound!.hintEntryId) {

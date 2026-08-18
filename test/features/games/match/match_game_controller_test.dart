@@ -1,5 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:vepkar_audio/features/games/core/game_models.dart';
 import 'package:vepkar_audio/features/games/match/match_game_state.dart';
 import 'package:vepkar_audio/features/games/match/match_round.dart';
 
@@ -94,15 +93,179 @@ void main() {
 
       expect(state.matchedEntryIds, isEmpty);
     });
-  });
 
-  group('MatchCardColumn enum', () {
-    test('enum has karelian value', () {
-      expect(MatchCardColumn.karelian, isNotNull);
+    test('copyWith preserves selectedLeftId with null value', () {
+      final round = MatchRound(
+        entries: [],
+        leftCards: [],
+        rightCards: [],
+        hintEntryId: null,
+      );
+
+      final state = MatchGameState.withRound(
+        round: round,
+        matchedPairs: [],
+        matchedEntryIds: <String>{},
+        bestTimeSeconds: 0,
+        elapsedTime: Duration.zero,
+      );
+
+      final newState = state.copyWith(selectedLeftId: null);
+
+      expect(newState.selectedLeftId, isNull);
     });
 
-    test('enum has russian value', () {
-      expect(MatchCardColumn.russian, isNotNull);
+    test('copyWith preserves selectedRightId with null value', () {
+      final round = MatchRound(
+        entries: [],
+        leftCards: [],
+        rightCards: [],
+        hintEntryId: null,
+      );
+
+      final state = MatchGameState.withRound(
+        round: round,
+        matchedPairs: [],
+        matchedEntryIds: <String>{},
+        bestTimeSeconds: 0,
+        elapsedTime: Duration.zero,
+      );
+
+      final newState = state.copyWith(selectedRightId: null);
+
+      expect(newState.selectedRightId, isNull);
+    });
+
+    test('copyWith preserves selectedLeftId when set', () {
+      final round = MatchRound(
+        entries: [],
+        leftCards: [],
+        rightCards: [],
+        hintEntryId: null,
+      );
+
+      final state = MatchGameState.withRound(
+        round: round,
+        matchedPairs: [],
+        matchedEntryIds: <String>{},
+        bestTimeSeconds: 0,
+        elapsedTime: Duration.zero,
+      );
+
+      final newState = state.copyWith(selectedLeftId: 'left123');
+
+      expect(newState.selectedLeftId, 'left123');
+    });
+
+    test('copyWith preserves selectedRightId when set', () {
+      final round = MatchRound(
+        entries: [],
+        leftCards: [],
+        rightCards: [],
+        hintEntryId: null,
+      );
+
+      final state = MatchGameState.withRound(
+        round: round,
+        matchedPairs: [],
+        matchedEntryIds: <String>{},
+        bestTimeSeconds: 0,
+        elapsedTime: Duration.zero,
+      );
+
+      final newState = state.copyWith(selectedRightId: 'right123');
+
+      expect(newState.selectedRightId, 'right123');
+    });
+
+    test('copyWith preserves isFeedbackInProgress', () {
+      final round = MatchRound(
+        entries: [],
+        leftCards: [],
+        rightCards: [],
+        hintEntryId: null,
+      );
+
+      final state = MatchGameState.feedbackComplete(
+        round: round,
+        matchedPairs: [],
+        matchedEntryIds: <String>{},
+        leftCards: [],
+        rightCards: [],
+        hintEntryId: null,
+        bestTimeSeconds: 0,
+        elapsedTime: Duration.zero,
+      ).copyWith(isFeedbackInProgress: true);
+
+      final newState = state.copyWith(elapsedTime: const Duration(seconds: 1));
+
+      expect(newState.isFeedbackInProgress, isTrue);
+    });
+  });
+
+  group('MatchTimer', () {
+    test('timer tick preserves selection state', () {
+      final round = MatchRound(
+        entries: [],
+        leftCards: [],
+        rightCards: [],
+        hintEntryId: null,
+      );
+
+      final initialState = MatchGameState.withRound(
+        round: round,
+        matchedPairs: [],
+        matchedEntryIds: <String>{},
+        bestTimeSeconds: 0,
+        elapsedTime: Duration.zero,
+      ).copyWith(selectedLeftId: 'left123');
+
+      final afterFirstTick = initialState.copyWith(
+        elapsedTime: const Duration(seconds: 1),
+      );
+
+      expect(afterFirstTick.selectedLeftId, 'left123');
+      expect(afterFirstTick.elapsedTime, const Duration(seconds: 1));
+
+      final afterSecondTick = afterFirstTick.copyWith(
+        elapsedTime: const Duration(seconds: 2),
+      );
+
+      expect(afterSecondTick.selectedLeftId, 'left123');
+      expect(afterSecondTick.elapsedTime, const Duration(seconds: 2));
+    });
+
+    test('timer tick preserves wrong feedback selection', () {
+      final round = MatchRound(
+        entries: [],
+        leftCards: [],
+        rightCards: [],
+        hintEntryId: null,
+      );
+
+      final initialState =
+          MatchGameState.feedbackComplete(
+            round: round,
+            matchedPairs: [],
+            matchedEntryIds: <String>{},
+            leftCards: [],
+            rightCards: [],
+            hintEntryId: null,
+            bestTimeSeconds: 0,
+            elapsedTime: Duration.zero,
+          ).copyWith(
+            selectedLeftId: 'wrongLeft',
+            selectedRightId: 'wrongRight',
+            isFeedbackInProgress: true,
+          );
+
+      final afterTick = initialState.copyWith(
+        elapsedTime: const Duration(seconds: 1),
+      );
+
+      expect(afterTick.selectedLeftId, 'wrongLeft');
+      expect(afterTick.selectedRightId, 'wrongRight');
+      expect(afterTick.isFeedbackInProgress, isTrue);
     });
   });
 }

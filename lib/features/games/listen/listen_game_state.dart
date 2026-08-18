@@ -1,6 +1,8 @@
 import 'listen_round.dart';
 
 class ListenGameState {
+  static const Object _sentinelUnset = Object();
+
   const ListenGameState._({
     this.loadError,
     this.currentRound,
@@ -134,28 +136,45 @@ class ListenGameState {
     int? score,
     int? streak,
     int? bestStreak,
-    String? selectedEntryId,
-    bool? answerIsCorrect,
+    Object? selectedEntryId = _sentinelUnset,
+    Object? answerIsCorrect,
     bool? hadWrongAttempt,
-    bool? isFeedbackInProgress,
-    bool? isTargetReplayHighlighted,
-    bool? isCorrectChoiceCelebrating,
+    Object? isFeedbackInProgress,
+    Object? isTargetReplayHighlighted,
+    Object? isCorrectChoiceCelebrating,
     bool? isSessionCompleted,
   }) {
+    final bool resolvedFeedbackInProgress =
+        identical(isFeedbackInProgress, _sentinelUnset)
+        ? this.isFeedbackInProgress
+        : (isFeedbackInProgress as bool?) ?? this.isFeedbackInProgress;
+    final bool resolvedTargetReplayHighlighted =
+        identical(isTargetReplayHighlighted, _sentinelUnset)
+        ? this.isTargetReplayHighlighted
+        : (isTargetReplayHighlighted as bool?) ??
+              this.isTargetReplayHighlighted;
+    final bool resolvedCorrectChoiceCelebrating =
+        identical(isCorrectChoiceCelebrating, _sentinelUnset)
+        ? this.isCorrectChoiceCelebrating
+        : (isCorrectChoiceCelebrating as bool?) ??
+              this.isCorrectChoiceCelebrating;
+
     return ListenGameState._(
       loadError: loadError ?? this.loadError,
       currentRound: currentRound ?? this.currentRound,
       score: score ?? this.score,
       streak: streak ?? this.streak,
       bestStreak: bestStreak ?? this.bestStreak,
-      selectedEntryId: selectedEntryId ?? this.selectedEntryId,
-      answerIsCorrect: answerIsCorrect ?? this.answerIsCorrect,
+      selectedEntryId: identical(selectedEntryId, _sentinelUnset)
+          ? this.selectedEntryId
+          : selectedEntryId as String?,
+      answerIsCorrect: identical(answerIsCorrect, _sentinelUnset)
+          ? this.answerIsCorrect
+          : answerIsCorrect as bool?,
       hadWrongAttempt: hadWrongAttempt ?? this.hadWrongAttempt,
-      isFeedbackInProgress: isFeedbackInProgress ?? this.isFeedbackInProgress,
-      isTargetReplayHighlighted:
-          isTargetReplayHighlighted ?? this.isTargetReplayHighlighted,
-      isCorrectChoiceCelebrating:
-          isCorrectChoiceCelebrating ?? this.isCorrectChoiceCelebrating,
+      isFeedbackInProgress: resolvedFeedbackInProgress,
+      isTargetReplayHighlighted: resolvedTargetReplayHighlighted,
+      isCorrectChoiceCelebrating: resolvedCorrectChoiceCelebrating,
       isSessionCompleted: isSessionCompleted ?? this.isSessionCompleted,
     );
   }

@@ -35,13 +35,39 @@ class _ListenGameViewState extends State<ListenGameView>
       duration: const Duration(milliseconds: 900),
     );
     widget.controller.initialize();
+    widget.controller.addListener(_syncAnimationsWithState);
   }
 
   @override
   void dispose() {
+    widget.controller.removeListener(_syncAnimationsWithState);
     _targetReplaySheenController.dispose();
     _correctChoiceController.dispose();
     super.dispose();
+  }
+
+  void _syncAnimationsWithState() {
+    final state = widget.controller.state;
+
+    if (state.isTargetReplayHighlighted) {
+      if (!_targetReplaySheenController.isAnimating) {
+        _targetReplaySheenController.repeat();
+      }
+    } else {
+      _targetReplaySheenController
+        ..stop()
+        ..reset();
+    }
+
+    if (state.isCorrectChoiceCelebrating) {
+      if (!_correctChoiceController.isAnimating) {
+        _correctChoiceController.forward(from: 0);
+      }
+    } else {
+      _correctChoiceController
+        ..stop()
+        ..reset();
+    }
   }
 
   @override
@@ -269,11 +295,7 @@ class _ListenGameViewState extends State<ListenGameView>
                   celebrationAnimation: isCorrectChoice
                       ? _correctChoiceController
                       : _correctChoiceController,
-                  onTap: state.isRoundActive
-                      ? () {
-                          widget.controller.choose(choice);
-                        }
-                      : null,
+                  onTap: () => widget.controller.choose(choice),
                 );
               }).toList(),
             ),

@@ -210,6 +210,8 @@ class MatchGameState {
   bool get isLoading => currentRound == null && !isError;
   bool get allMatched => matchedPairs.length == 5;
 
+  static const Object _sentinelUnset = Object();
+
   MatchGameState copyWith({
     Object? loadError,
     MatchRound? currentRound,
@@ -217,8 +219,8 @@ class MatchGameState {
     List<GameEntry>? rightCards,
     List<MatchedPair>? matchedPairs,
     Set<String>? matchedEntryIds,
-    String? selectedLeftId,
-    String? selectedRightId,
+    Object? selectedLeftId = _sentinelUnset,
+    Object? selectedRightId = _sentinelUnset,
     String? wrongLeftId,
     String? wrongRightId,
     bool? isCheckingMatch,
@@ -235,8 +237,12 @@ class MatchGameState {
       rightCards: rightCards ?? this.rightCards,
       matchedPairs: matchedPairs ?? this.matchedPairs,
       matchedEntryIds: matchedEntryIds ?? this.matchedEntryIds,
-      selectedLeftId: selectedLeftId ?? this.selectedLeftId,
-      selectedRightId: selectedRightId ?? this.selectedRightId,
+      selectedLeftId: identical(selectedLeftId, _sentinelUnset)
+          ? this.selectedLeftId
+          : selectedLeftId as String?,
+      selectedRightId: identical(selectedRightId, _sentinelUnset)
+          ? this.selectedRightId
+          : selectedRightId as String?,
       wrongLeftId: wrongLeftId ?? this.wrongLeftId,
       wrongRightId: wrongRightId ?? this.wrongRightId,
       isCheckingMatch: isCheckingMatch ?? this.isCheckingMatch,

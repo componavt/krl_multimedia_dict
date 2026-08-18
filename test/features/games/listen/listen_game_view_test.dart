@@ -179,5 +179,115 @@ void main() {
       expect(newState.answerIsCorrect, isNull);
       expect(newState.isFeedbackInProgress, isFalse);
     });
+
+    test('selectedEntryId is cleared properly after feedback', () {
+      final round = ListenRound(
+        target: GameEntry(
+          lemmaId: 'target',
+          lemma: 'kotka',
+          meaning: 'eagle',
+          partOfSpeech: 'noun',
+          hasAudio: true,
+        ),
+        choices: [],
+        roundNumber: 0,
+      );
+
+      final state = ListenGameState.withChoice(
+        round: round,
+        score: 0,
+        streak: 0,
+        bestStreak: 0,
+        selectedEntryId: 'target',
+        answerIsCorrect: true,
+        hadWrongAttempt: false,
+      );
+
+      final clearedState = state.copyWith(
+        selectedEntryId: null,
+        answerIsCorrect: null,
+        isFeedbackInProgress: false,
+        isTargetReplayHighlighted: false,
+        isCorrectChoiceCelebrating: false,
+      );
+
+      expect(clearedState.selectedEntryId, isNull);
+    });
+
+    test('isTargetReplayHighlighted state is preserved', () {
+      final round = ListenRound(
+        target: GameEntry(
+          lemmaId: 'target',
+          lemma: 'kotka',
+          meaning: 'eagle',
+          partOfSpeech: 'noun',
+          hasAudio: true,
+        ),
+        choices: [],
+        roundNumber: 0,
+      );
+
+      final state = ListenGameState.withChoice(
+        round: round,
+        score: 0,
+        streak: 0,
+        bestStreak: 0,
+        selectedEntryId: null,
+        answerIsCorrect: null,
+        hadWrongAttempt: false,
+      );
+
+      final highlightedState = state.copyWith(
+        isTargetReplayHighlighted: true,
+        isFeedbackInProgress: true,
+      );
+
+      expect(highlightedState.isTargetReplayHighlighted, isTrue);
+      expect(highlightedState.isFeedbackInProgress, isTrue);
+
+      final nonHighlightedState = highlightedState.copyWith(
+        isTargetReplayHighlighted: false,
+      );
+
+      expect(nonHighlightedState.isTargetReplayHighlighted, isFalse);
+    });
+
+    test('isCorrectChoiceCelebrating state is preserved', () {
+      final round = ListenRound(
+        target: GameEntry(
+          lemmaId: 'target',
+          lemma: 'kotka',
+          meaning: 'eagle',
+          partOfSpeech: 'noun',
+          hasAudio: true,
+        ),
+        choices: [],
+        roundNumber: 0,
+      );
+
+      final state = ListenGameState.withChoice(
+        round: round,
+        score: 0,
+        streak: 0,
+        bestStreak: 0,
+        selectedEntryId: 'target',
+        answerIsCorrect: true,
+        hadWrongAttempt: false,
+      );
+
+      final celebratingState = state.copyWith(
+        isCorrectChoiceCelebrating: true,
+        isTargetReplayHighlighted: true,
+        isFeedbackInProgress: true,
+      );
+
+      expect(celebratingState.isCorrectChoiceCelebrating, isTrue);
+
+      final notCelebratingState = celebratingState.copyWith(
+        isCorrectChoiceCelebrating: false,
+      );
+
+      expect(notCelebratingState.isCorrectChoiceCelebrating, isFalse);
+    });
   });
 }
