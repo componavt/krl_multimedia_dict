@@ -69,9 +69,21 @@ void main() {
 
   group('MatchedPairsFooterLayoutTests', () {
     test('stack-ordered pairs are maintained in state', () {
-      final pairC = MatchedPair(id: 'C', lemma: 'C lemma', meaning: 'C meaning');
-      final pairB = MatchedPair(id: 'B', lemma: 'B lemma', meaning: 'B meaning');
-      final pairA = MatchedPair(id: 'A', lemma: 'A lemma', meaning: 'A meaning');
+      final pairC = MatchedPair(
+        id: 'C',
+        lemma: 'C lemma',
+        meaning: 'C meaning',
+      );
+      final pairB = MatchedPair(
+        id: 'B',
+        lemma: 'B lemma',
+        meaning: 'B meaning',
+      );
+      final pairA = MatchedPair(
+        id: 'A',
+        lemma: 'A lemma',
+        meaning: 'A meaning',
+      );
 
       expect([pairC, pairB, pairA][0].id, equals('C'));
       expect([pairC, pairB, pairA][1].id, equals('B'));

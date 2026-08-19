@@ -151,7 +151,12 @@ class _GamePageState extends State<GamePage> {
       return const SizedBox.shrink();
     }
 
-    return ListenGameView(controller: controller);
+    return ListenGameView(
+      controller: controller,
+      onExit: () {
+        _stopCurrentGameAndReturn();
+      },
+    );
   }
 
   Widget _matchView(AppLocalizations l10n) {

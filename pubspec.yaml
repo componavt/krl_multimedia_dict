@@ -5,7 +5,7 @@ description: Dictionary of the Livvi dialect of the Karelian language with audio
 publish_to: 'none'
 
 # App version
-version: 1.0.5
+version: 1.0.7
 
 environment:
   sdk: ^3.9.0

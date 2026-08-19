@@ -62,7 +62,8 @@ class MatchChoiceCard extends StatelessWidget {
       ),
     );
 
-    return Flexible(
+    return SizedBox(
+      width: double.infinity,
       child: Material(
         color: cardColor,
         borderRadius: BorderRadius.circular(10),

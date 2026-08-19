@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:vepkar_audio/features/games/listen/listen_game_state.dart';
 import 'package:vepkar_audio/features/games/listen/listen_round.dart';
 import 'package:vepkar_audio/features/games/core/game_entry.dart';
+import 'package:flutter/foundation.dart';
 
 void main() {
   group('ListenGameState', () {
@@ -290,4 +291,62 @@ void main() {
       expect(notCelebratingState.isCorrectChoiceCelebrating, isFalse);
     });
   });
+
+  group('ListenCompleteOnExitBehavior', () {
+    test('ListenCompleteOnExitBehavior completes without starting new session', () {
+      var onExitCalled = false;
+      var startSessionCalled = false;
+
+      final controller = _TestListenGameController(
+        onInitialize: () {},
+        onStartSession: () {
+          startSessionCalled = true;
+        },
+      );
+
+      final state = ListenGameState.completed(
+        score: 10,
+        streak: 5,
+        bestStreak: 5,
+      );
+
+      controller.state = state;
+      controller.notifyListeners();
+
+      onExitCalled = true;
+
+      expect(onExitCalled, isTrue);
+      expect(startSessionCalled, isFalse);
+    });
+  });
+}
+
+class _TestListenGameController extends ChangeNotifier {
+  final void Function() onInitialize;
+  final void Function() onStartSession;
+
+  ListenGameState state = ListenGameState.initial();
+
+  _TestListenGameController({
+    required this.onInitialize,
+    required this.onStartSession,
+  });
+
+  Future<void> initialize() async {
+    onInitialize();
+    notifyListeners();
+  }
+
+  Future<void> startSession() async {
+    onStartSession();
+    notifyListeners();
+  }
+
+  Future<void> resetSession() async {
+    notifyListeners();
+  }
+
+  Future<void> choose(GameEntry entry) async {
+    notifyListeners();
+  }
 }

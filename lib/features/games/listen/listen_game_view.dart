@@ -10,9 +10,14 @@ import 'widgets/streak_archive_mark.dart';
 import '../core/game_entry.dart';
 
 class ListenGameView extends StatefulWidget {
-  const ListenGameView({super.key, required this.controller});
+  const ListenGameView({
+    super.key,
+    required this.controller,
+    required this.onExit,
+  });
 
   final ListenGameController controller;
+  final VoidCallback onExit;
 
   @override
   State<ListenGameView> createState() => _ListenGameViewState();
@@ -171,9 +176,7 @@ class _ListenGameViewState extends State<ListenGameView>
             ),
             const SizedBox(height: 8),
             ElevatedButton(
-              onPressed: () {
-                widget.controller.startSession();
-              },
+              onPressed: widget.onExit,
               child: Text(l10n.backToGames),
             ),
           ],
