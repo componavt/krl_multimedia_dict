@@ -29,7 +29,6 @@ class ListenGameController extends ChangeNotifier {
   int _score = 0;
   int _streak = 0;
   int _bestStreak = 0;
-  bool _hadWrongAttempt = false;
 
   ListenGameState _currentState = ListenGameState.initial();
 
@@ -89,9 +88,10 @@ class ListenGameController extends ChangeNotifier {
   }
 
   Future<void> _handleCorrect(GameEntry entry) async {
+    final currentState = _currentState;
     await learningRepository.registerRoundResult(
       lemmaId: entry.lemmaId,
-      firstAttemptCorrect: !_hadWrongAttempt,
+      firstAttemptCorrect: !currentState.hadWrongAttempt,
     );
 
     _score++;
@@ -129,7 +129,6 @@ class ListenGameController extends ChangeNotifier {
       bestStreak: _bestStreak,
       selectedEntryId: null,
       answerIsCorrect: null,
-      hadWrongAttempt: false,
       isFeedbackInProgress: false,
       isTargetReplayHighlighted: false,
       isCorrectChoiceCelebrating: false,
@@ -148,7 +147,6 @@ class ListenGameController extends ChangeNotifier {
 
   Future<void> _handleWrong(GameEntry entry) async {
     _streak = 0;
-    _hadWrongAttempt = true;
 
     final startTime = DateTime.now();
 
@@ -161,7 +159,7 @@ class ListenGameController extends ChangeNotifier {
       isFeedbackInProgress: true,
       isTargetReplayHighlighted: false,
       isCorrectChoiceCelebrating: false,
-      hadWrongAttempt: _hadWrongAttempt,
+      hadWrongAttempt: true,
     );
     notifyListeners();
 
@@ -185,7 +183,6 @@ class ListenGameController extends ChangeNotifier {
       bestStreak: _bestStreak,
       selectedEntryId: null,
       answerIsCorrect: null,
-      hadWrongAttempt: false,
       isFeedbackInProgress: false,
       isTargetReplayHighlighted: false,
       isCorrectChoiceCelebrating: false,
@@ -194,29 +191,11 @@ class ListenGameController extends ChangeNotifier {
 
     await Future<void>.delayed(const Duration(milliseconds: 800));
 
-    _reshuffleChoices();
-  }
-
-  void _reshuffleChoices() {
-    final round = _currentState.currentRound!;
-    final choices = List<GameEntry>.from(round.choices)..shuffle(_random);
-
-    final newRound = ListenRound(
-      target: round.target,
-      choices: choices,
-      roundNumber: round.roundNumber,
-    );
-
-    _currentState = ListenGameState.withChoice(
-      round: newRound,
-      score: _score,
-      streak: _streak,
-      bestStreak: _bestStreak,
-      selectedEntryId: null,
-      answerIsCorrect: null,
-      hadWrongAttempt: _hadWrongAttempt,
-    );
-    notifyListeners();
+    if (_roundNumber >= _totalListenRounds) {
+      await completeSession();
+    } else {
+      await _startRound();
+    }
   }
 
   Future<void> _startRound() async {
@@ -276,11 +255,21 @@ class ListenGameController extends ChangeNotifier {
       roundNumber: _roundNumber,
     );
 
-    _currentState = ListenGameState.withRound(
+    final newState = ListenGameState.withRound(
       round: round,
       score: _score,
       streak: _streak,
       bestStreak: _bestStreak,
+    );
+
+    _currentState = newState.copyWith(
+      selectedEntryId: null,
+      answerIsCorrect: null,
+      hadWrongAttempt: false,
+      isFeedbackInProgress: false,
+      isTargetReplayHighlighted: false,
+      isCorrectChoiceCelebrating: false,
+      isSessionCompleted: false,
     );
     notifyListeners();
 

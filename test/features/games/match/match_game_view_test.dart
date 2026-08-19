@@ -1,93 +1,137 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vepkar_audio/features/games/match/match_game_state.dart';
+import 'package:vepkar_audio/features/games/match/match_round.dart';
+import 'package:vepkar_audio/features/games/match/widgets/match_choice_card.dart';
+import 'package:vepkar_audio/features/games/core/game_entry.dart';
 import 'package:vepkar_audio/features/games/core/game_models.dart';
 
 void main() {
-  group('MatchCompletionWidgetTests', () {
-    test('completed state has expected completion properties', () {
-      final state = MatchGameState.completed(
-        matchedPairs: List.generate(
-          5,
-          (i) =>
-              MatchedPair(id: 'id$i', lemma: 'lemma$i', meaning: 'meaning$i'),
+  group('MatchChoiceCard', () {
+    test('wrong card uses brick red color', () {
+      final card = MatchChoiceCard(
+        gameEntry: GameEntry(
+          lemmaId: 'card1',
+          lemma: 'kotka',
+          meaning: 'кошка',
+          partOfSpeech: 'noun',
+          hasAudio: true,
         ),
-        matchedEntryIds: {'id0', 'id1', 'id2', 'id3', 'id4'},
-        elapsedTime: const Duration(seconds: 45),
-        bestTimeSeconds: 45,
+        column: MatchCardColumn.russian,
+        onTap: () {},
+        isSelected: false,
+        isMatched: false,
+        isWrong: true,
+        backgroundColor: Colors.green,
       );
 
-      expect(state.isSessionCompleted, isTrue);
-      expect(state.isLoading, isFalse);
-      expect(state.allMatched, isTrue);
-      expect(state.matchedPairs.length, equals(5));
-      expect(state.elapsedTime, const Duration(seconds: 45));
-      expect(state.bestTimeSeconds, equals(45));
+      final cardWidget = card;
+      expect(cardWidget.isWrong, isTrue);
     });
 
-    test('completed state UI renders completion screen in view', () {
-      final state = MatchGameState.completed(
-        matchedPairs: List.generate(
-          5,
-          (i) =>
-              MatchedPair(id: 'id$i', lemma: 'lemma$i', meaning: 'meaning$i'),
+    test('selected card uses amber color when not wrong', () {
+      final card = MatchChoiceCard(
+        gameEntry: GameEntry(
+          lemmaId: 'card1',
+          lemma: 'kotka',
+          meaning: 'кошка',
+          partOfSpeech: 'noun',
+          hasAudio: true,
         ),
-        matchedEntryIds: {'id0', 'id1', 'id2', 'id3', 'id4'},
-        elapsedTime: const Duration(seconds: 60),
-        bestTimeSeconds: 60,
+        column: MatchCardColumn.russian,
+        onTap: () {},
+        isSelected: true,
+        isMatched: false,
+        isWrong: false,
+        backgroundColor: Colors.blue,
       );
 
-      expect(state.isSessionCompleted, isTrue);
-      expect(state.isLoading, isFalse);
-      expect(state.allMatched, isTrue);
-
-      expect(state.matchedPairs.first.id, equals('id0'));
-      expect(state.elapsedTime, const Duration(seconds: 60));
+      expect(card.isSelected, isTrue);
+      expect(card.isWrong, isFalse);
     });
 
-    test('completed state timer cannot mutate state after completion', () {
-      final original = MatchGameState.completed(
-        matchedPairs: List.generate(
-          5,
-          (i) =>
-              MatchedPair(id: 'id$i', lemma: 'lemma$i', meaning: 'meaning$i'),
+    test('matched card uses moss green color', () {
+      final card = MatchChoiceCard(
+        gameEntry: GameEntry(
+          lemmaId: 'card1',
+          lemma: 'kotka',
+          meaning: 'кошка',
+          partOfSpeech: 'noun',
+          hasAudio: true,
         ),
-        matchedEntryIds: {'id0', 'id1', 'id2', 'id3', 'id4'},
-        elapsedTime: const Duration(seconds: 30),
-        bestTimeSeconds: 30,
+        column: MatchCardColumn.russian,
+        onTap: () {},
+        isSelected: false,
+        isMatched: true,
+        isWrong: false,
+        backgroundColor: Colors.blue,
       );
 
-      final afterDelay = original.copyWith(
-        elapsedTime: const Duration(seconds: 31),
-      );
-
-      expect(afterDelay.isSessionCompleted, isTrue);
-      expect(afterDelay.isLoading, isFalse);
-      expect(afterDelay.elapsedTime, const Duration(seconds: 31));
-      expect(original.elapsedTime, const Duration(seconds: 30));
+      expect(card.isMatched, isTrue);
     });
   });
 
-  group('MatchedPairsFooterLayoutTests', () {
-    test('stack-ordered pairs are maintained in state', () {
-      final pairC = MatchedPair(
-        id: 'C',
-        lemma: 'C lemma',
-        meaning: 'C meaning',
-      );
-      final pairB = MatchedPair(
-        id: 'B',
-        lemma: 'B lemma',
-        meaning: 'B meaning',
-      );
-      final pairA = MatchedPair(
-        id: 'A',
-        lemma: 'A lemma',
-        meaning: 'A meaning',
+  group('MatchGameSelection', () {
+    test('selectedRightId persists during timer ticks', () {
+      final round = MatchRound(
+        entries: [],
+        leftCards: [],
+        rightCards: [],
+        hintEntryId: null,
       );
 
-      expect([pairC, pairB, pairA][0].id, equals('C'));
-      expect([pairC, pairB, pairA][1].id, equals('B'));
-      expect([pairC, pairB, pairA][2].id, equals('A'));
+      final state = MatchGameState.feedbackComplete(
+        round: round,
+        matchedPairs: [],
+        matchedEntryIds: <String>{},
+        leftCards: [],
+        rightCards: [],
+        hintEntryId: null,
+        bestTimeSeconds: 0,
+        elapsedTime: Duration.zero,
+      ).copyWith(selectedRightId: 'pair1', isFeedbackInProgress: false);
+
+      expect(state.selectedRightId, 'pair1');
+
+      final afterTick = state.copyWith(elapsedTime: const Duration(seconds: 1));
+
+      expect(afterTick.selectedRightId, 'pair1');
+    });
+
+    test('wrong feedback state persists', () {
+      final round = MatchRound(
+        entries: [],
+        leftCards: [],
+        rightCards: [],
+        hintEntryId: null,
+      );
+
+      final state =
+          MatchGameState.feedbackComplete(
+            round: round,
+            matchedPairs: [],
+            matchedEntryIds: <String>{},
+            leftCards: [],
+            rightCards: [],
+            hintEntryId: null,
+            bestTimeSeconds: 0,
+            elapsedTime: Duration.zero,
+          ).copyWith(
+            selectedLeftId: 'pair1',
+            selectedRightId: 'pair1',
+            wrongLeftId: 'pair1',
+            wrongRightId: 'pair1',
+            isFeedbackInProgress: true,
+          );
+
+      expect(state.wrongLeftId, 'pair1');
+      expect(state.wrongRightId, 'pair1');
+      expect(state.isFeedbackInProgress, isTrue);
+
+      final afterTick = state.copyWith(elapsedTime: const Duration(seconds: 1));
+
+      expect(afterTick.wrongLeftId, 'pair1');
+      expect(afterTick.wrongRightId, 'pair1');
     });
   });
 }

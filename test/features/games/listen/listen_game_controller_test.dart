@@ -1,9 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vepkar_audio/features/games/listen/listen_game_state.dart';
+import 'package:vepkar_audio/features/games/listen/listen_round.dart';
+import 'package:vepkar_audio/features/games/core/game_entry.dart';
 import 'package:vepkar_audio/word_learning_record.dart';
 
 void main() {
-  group('ListenGameController', () {
+  group('ListenGameState', () {
     test(
       'ListenGameState.completed() has isSessionCompleted=true and isLoading=false',
       () {
@@ -27,6 +29,88 @@ void main() {
       expect(state.isLoading, isTrue);
       expect(state.currentRound, isNull);
       expect(state.isSessionCompleted, isFalse);
+    });
+
+    test('hadWrongAttempt remains true through wrong-feedback cleanup', () {
+      final round = ListenRound(
+        target: GameEntry(
+          lemmaId: 'target1',
+          lemma: 'kotka',
+          meaning: 'eagle',
+          partOfSpeech: 'noun',
+          hasAudio: true,
+        ),
+        choices: [
+          GameEntry(
+            lemmaId: 'target1',
+            lemma: 'kotka',
+            meaning: 'eagle',
+            partOfSpeech: 'noun',
+            hasAudio: true,
+          ),
+          GameEntry(
+            lemmaId: 'distractor1',
+            lemma: 'koira',
+            meaning: 'eagle',
+            partOfSpeech: 'noun',
+            hasAudio: true,
+          ),
+        ],
+        roundNumber: 0,
+      );
+
+      final state = ListenGameState.withChoice(
+        round: round,
+        score: 0,
+        streak: 0,
+        bestStreak: 0,
+        selectedEntryId: 'distractor1',
+        answerIsCorrect: false,
+        hadWrongAttempt: true,
+      );
+
+      expect(state.hadWrongAttempt, isTrue);
+
+      final clearedState = state.copyWith(
+        selectedEntryId: null,
+        answerIsCorrect: null,
+        isFeedbackInProgress: false,
+        isTargetReplayHighlighted: false,
+        isCorrectChoiceCelebrating: false,
+      );
+
+      expect(clearedState.hadWrongAttempt, isTrue);
+    });
+
+    test('new round resets hadWrongAttempt to false', () {
+      final round = ListenRound(
+        target: GameEntry(
+          lemmaId: 'target1',
+          lemma: 'kotka',
+          meaning: 'eagle',
+          partOfSpeech: 'noun',
+          hasAudio: true,
+        ),
+        choices: [],
+        roundNumber: 1,
+      );
+
+      final state =
+          ListenGameState.withRound(
+            round: round,
+            score: 0,
+            streak: 0,
+            bestStreak: 0,
+          ).copyWith(
+            hadWrongAttempt: false,
+            selectedEntryId: null,
+            answerIsCorrect: null,
+            isFeedbackInProgress: false,
+            isTargetReplayHighlighted: false,
+            isCorrectChoiceCelebrating: false,
+          );
+
+      expect(state.hadWrongAttempt, isFalse);
     });
 
     test('LearnedSessionSummary.fromJson deserializes correctly', () {

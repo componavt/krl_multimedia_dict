@@ -325,4 +325,77 @@ void main() {
       expect([pairC, pairB, pairA][2].id, 'A');
     });
   });
+
+  group('MatchGameController', () {
+    test('wrong feedback has bilateral wrong IDs', () async {
+      final round = MatchRound(
+        entries: [],
+        leftCards: [],
+        rightCards: [],
+        hintEntryId: null,
+      );
+
+      final state =
+          MatchGameState.feedbackComplete(
+            round: round,
+            matchedPairs: [],
+            matchedEntryIds: <String>{},
+            leftCards: [],
+            rightCards: [],
+            hintEntryId: null,
+            bestTimeSeconds: 0,
+            elapsedTime: Duration.zero,
+          ).copyWith(
+            selectedLeftId: 'wrongLeft',
+            selectedRightId: 'wrongRight',
+            wrongLeftId: 'wrongLeft',
+            wrongRightId: 'wrongRight',
+            isFeedbackInProgress: true,
+          );
+
+      expect(state.selectedLeftId, 'wrongLeft');
+      expect(state.selectedRightId, 'wrongRight');
+      expect(state.wrongLeftId, 'wrongLeft');
+      expect(state.wrongRightId, 'wrongRight');
+      expect(state.isFeedbackInProgress, isTrue);
+    });
+
+    test('selection IDs captured before await prevent race', () async {
+      final round = MatchRound(
+        entries: [],
+        leftCards: [],
+        rightCards: [],
+        hintEntryId: null,
+      );
+
+      final state =
+          MatchGameState.feedbackComplete(
+            round: round,
+            matchedPairs: [],
+            matchedEntryIds: <String>{},
+            leftCards: [],
+            rightCards: [],
+            hintEntryId: null,
+            bestTimeSeconds: 0,
+            elapsedTime: Duration.zero,
+          ).copyWith(
+            selectedLeftId: 'left1',
+            selectedRightId: 'right1',
+            isFeedbackInProgress: true,
+          );
+
+      expect(state.selectedLeftId, 'left1');
+      expect(state.selectedRightId, 'right1');
+
+      final clearedState = state.copyWith(
+        selectedLeftId: null,
+        selectedRightId: null,
+        wrongLeftId: null,
+        wrongRightId: null,
+        isFeedbackInProgress: false,
+      );
+
+      expect(clearedState.isFeedbackInProgress, isFalse);
+    });
+  });
 }

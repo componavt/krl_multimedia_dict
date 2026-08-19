@@ -10,6 +10,10 @@ import 'widgets/match_status_panel.dart';
 import '../core/game_entry.dart';
 import '../core/game_models.dart';
 
+const String _karelianZoneKey = 'match_karelian_zone';
+const String _russianZoneKey = 'match_russian_zone';
+const String _matchedPairsFooterKey = 'matched_pairs_footer';
+
 class MatchGameView extends StatefulWidget {
   const MatchGameView({
     super.key,
@@ -140,45 +144,60 @@ class _MatchGameViewState extends State<MatchGameView> {
   }
 
   Widget _buildMatchMode(AppLocalizations l10n, MatchGameState state) {
-    return Column(
-      children: [
-        MatchStatusPanel(
-          elapsedTime: state.elapsedTime,
-          bestTimeSeconds: state.bestTimeSeconds,
-          matchedCount: state.matchedPairs.length,
-          totalCount: 5,
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(
+          child: MatchStatusPanel(
+            elapsedTime: state.elapsedTime,
+            bestTimeSeconds: state.bestTimeSeconds,
+            matchedCount: state.matchedPairs.length,
+            totalCount: 5,
+          ),
         ),
-        Flexible(
-          fit: FlexFit.loose,
+        SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: _buildMatchZone(
-                    title: l10n.karelianColumn,
-                    backgroundColor: AppPalette.karelianPanel,
-                    cards: state.leftCards ?? <GameEntry>[],
-                    isLeftSide: true,
-                    state: state,
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: KeyedSubtree(
+                      key: Key(_karelianZoneKey),
+                      child: _buildMatchZone(
+                        title: l10n.karelianColumn,
+                        backgroundColor: AppPalette.karelianPanel,
+                        cards: state.leftCards ?? <GameEntry>[],
+                        isLeftSide: true,
+                        state: state,
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _buildMatchZone(
-                    title: l10n.translationColumn,
-                    backgroundColor: AppPalette.translationPanel,
-                    cards: state.rightCards ?? <GameEntry>[],
-                    isLeftSide: false,
-                    state: state,
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: KeyedSubtree(
+                      key: Key(_russianZoneKey),
+                      child: _buildMatchZone(
+                        title: l10n.translationColumn,
+                        backgroundColor: AppPalette.translationPanel,
+                        cards: state.rightCards ?? <GameEntry>[],
+                        isLeftSide: false,
+                        state: state,
+                      ),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
-        Expanded(child: MatchedPairsFooter(matchedPairs: state.matchedPairs)),
+        SliverFillRemaining(
+          hasScrollBody: true,
+          child: KeyedSubtree(
+            key: Key(_matchedPairsFooterKey),
+            child: MatchedPairsFooter(matchedPairs: state.matchedPairs),
+          ),
+        ),
       ],
     );
   }
@@ -190,59 +209,49 @@ class _MatchGameViewState extends State<MatchGameView> {
     required bool isLeftSide,
     required MatchGameState state,
   }) {
+    final visibleCards = cards.where((card) {
+      return !state.matchedPairs.any((p) => p.id == card.lemmaId);
+    }).toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: Text(
-            title,
-            style: const TextStyle(
-              fontWeight: FontWeight.w600,
-              fontFamily: 'Open Sans',
-              fontSize: 14,
-            ),
+        Text(
+          title,
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            fontFamily: 'Open Sans',
+            fontSize: 14,
           ),
         ),
-        ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: cards.length,
-          itemBuilder: (context, index) {
-            final card = cards[index];
-            final cardId = card.lemmaId;
-
-            if (state.matchedPairs.any((p) => p.id == cardId)) {
-              return const SizedBox.shrink();
-            }
-
-            if (isLeftSide) {
-              return MatchChoiceCard(
-                gameEntry: card,
-                column: MatchCardColumn.karelian,
-                onTap: () {
+        const SizedBox(height: 8),
+        ...visibleCards.map(
+          (card) => Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: MatchChoiceCard(
+              gameEntry: card,
+              column: isLeftSide
+                  ? MatchCardColumn.karelian
+                  : MatchCardColumn.russian,
+              onTap: () {
+                if (isLeftSide) {
                   widget.controller.selectLeft(card);
-                },
-                isSelected: state.selectedLeftId == cardId,
-                isMatched: false,
-                isWrong: state.wrongLeftId == cardId,
-                backgroundColor: backgroundColor,
-              );
-            } else {
-              return MatchChoiceCard(
-                gameEntry: card,
-                column: MatchCardColumn.russian,
-                onTap: () {
+                } else {
                   widget.controller.selectRight(card);
-                },
-                isSelected: state.selectedRightId == cardId,
-                isMatched: false,
-                isWrong: state.wrongRightId == cardId,
-                backgroundColor: backgroundColor,
-                audioHintEntryId: state.hintEntryId,
-              );
-            }
-          },
+                }
+              },
+              isSelected: isLeftSide && state.selectedLeftId == card.lemmaId,
+              isMatched: false,
+              isWrong: isLeftSide
+                  ? state.wrongLeftId == card.lemmaId
+                  : state.wrongRightId == card.lemmaId,
+              backgroundColor: backgroundColor,
+              audioHintEntryId: !isLeftSide && state.hintEntryId == card.lemmaId
+                  ? state.hintEntryId
+                  : null,
+            ),
+          ),
         ),
       ],
     );

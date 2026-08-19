@@ -244,16 +244,17 @@ class _ListenGameViewState extends State<ListenGameView>
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              ListenReplayButton(
-                onPressed: state.isRoundActive
-                    ? () async {
-                        await widget.controller.audioPlayer.play(
-                          round.target.lemmaId,
-                        );
-                      }
-                    : null,
-                isTargetReplayHighlighted: state.isTargetReplayHighlighted,
-                sheenAnimation: _targetReplaySheenController,
+              IgnorePointer(
+                ignoring: !state.isRoundActive,
+                child: ListenReplayButton(
+                  onPressed: () async {
+                    await widget.controller.audioPlayer.play(
+                      round.target.lemmaId,
+                    );
+                  },
+                  isTargetReplayHighlighted: state.isTargetReplayHighlighted,
+                  sheenAnimation: _targetReplaySheenController,
+                ),
               ),
             ],
           ),

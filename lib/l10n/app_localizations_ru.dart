@@ -151,7 +151,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get elapsedTime => 'Время';
 
   @override
-  String get karelianColumn => 'Карельское';
+  String get karelianColumn => 'Карельский';
 
   @override
   String get translationColumn => 'Русский';

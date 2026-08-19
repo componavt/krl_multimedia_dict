@@ -1,8 +1,9 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vepkar_audio/features/games/listen/listen_game_state.dart';
 import 'package:vepkar_audio/features/games/listen/listen_round.dart';
+import 'package:vepkar_audio/features/games/listen/widgets/listen_replay_button.dart';
 import 'package:vepkar_audio/features/games/core/game_entry.dart';
-import 'package:flutter/foundation.dart';
 
 void main() {
   group('ListenGameState', () {
@@ -290,33 +291,93 @@ void main() {
 
       expect(notCelebratingState.isCorrectChoiceCelebrating, isFalse);
     });
+
+    testWidgets(
+      'Listen replay button remains visually enabled during feedback',
+      (WidgetTester tester) async {
+        final sheenAnimation = AnimationController(
+          vsync: const TestVSync(),
+          duration: const Duration(milliseconds: 1400),
+        );
+
+        final testButton = ListenReplayButton(
+          onPressed: () {},
+          isTargetReplayHighlighted: true,
+          sheenAnimation: sheenAnimation,
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: IgnorePointer(ignoring: false, child: testButton),
+            ),
+          ),
+        );
+
+        final findListenButton = find.text('Listen');
+        expect(findListenButton, findsOneWidget);
+
+        sheenAnimation.dispose();
+      },
+    );
   });
 
   group('ListenCompleteOnExitBehavior', () {
-    test('ListenCompleteOnExitBehavior completes without starting new session', () {
-      var onExitCalled = false;
-      var startSessionCalled = false;
+    test(
+      'ListenCompleteOnExitBehavior completes without starting new session',
+      () {
+        var onExitCalled = false;
+        var startSessionCalled = false;
 
-      final controller = _TestListenGameController(
-        onInitialize: () {},
-        onStartSession: () {
-          startSessionCalled = true;
-        },
+        final controller = _TestListenGameController(
+          onInitialize: () {},
+          onStartSession: () {
+            startSessionCalled = true;
+          },
+        );
+
+        final state = ListenGameState.completed(
+          score: 10,
+          streak: 5,
+          bestStreak: 5,
+        );
+
+        controller.state = state;
+        controller.notifyListeners();
+
+        onExitCalled = true;
+
+        expect(onExitCalled, isTrue);
+        expect(startSessionCalled, isFalse);
+      },
+    );
+
+    testWidgets('Listen replay button pointer blocked during feedback', (
+      WidgetTester tester,
+    ) async {
+      final sheenAnimation = AnimationController(
+        vsync: const TestVSync(),
+        duration: const Duration(milliseconds: 1400),
       );
 
-      final state = ListenGameState.completed(
-        score: 10,
-        streak: 5,
-        bestStreak: 5,
+      final testButton = ListenReplayButton(
+        onPressed: () {},
+        isTargetReplayHighlighted: true,
+        sheenAnimation: sheenAnimation,
       );
 
-      controller.state = state;
-      controller.notifyListeners();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: IgnorePointer(ignoring: true, child: testButton),
+          ),
+        ),
+      );
 
-      onExitCalled = true;
+      final findListenButton = find.text('Listen');
+      expect(findListenButton, findsOneWidget);
 
-      expect(onExitCalled, isTrue);
-      expect(startSessionCalled, isFalse);
+      sheenAnimation.dispose();
     });
   });
 }

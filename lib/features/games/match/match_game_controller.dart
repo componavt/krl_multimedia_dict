@@ -197,6 +197,12 @@ class MatchGameController extends ChangeNotifier {
       return;
     }
 
+    final leftId = _state.selectedLeftId!;
+    final rightId = _state.selectedRightId!;
+
+    _state = _state.copyWith(isFeedbackInProgress: true);
+    notifyListeners();
+
     await Future<void>.delayed(const Duration(milliseconds: 350));
 
     if (leftEntry.lemmaId == rightEntry.lemmaId) {
@@ -261,10 +267,10 @@ class MatchGameController extends ChangeNotifier {
         matchedEntryIds: _matchedEntryIds,
         leftCards: _currentRound!.leftCards,
         rightCards: _currentRound!.rightCards,
-        wrongLeftId: leftEntry.lemmaId,
-        wrongRightId: rightEntry.lemmaId,
-        selectedLeftId: leftEntry.lemmaId,
-        selectedRightId: rightEntry.lemmaId,
+        wrongLeftId: leftId,
+        wrongRightId: rightId,
+        selectedLeftId: leftId,
+        selectedRightId: rightId,
         elapsedTime: _elapsedTime,
       );
       notifyListeners();

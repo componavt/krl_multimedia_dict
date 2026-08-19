@@ -56,7 +56,7 @@
   "versionLabel": "Версия",
   "pairsMatched": "Собрано пар",
   "elapsedTime": "Время",
-  "karelianColumn": "Карельское",
+  "karelianColumn": "Карельский",
   "translationColumn": "Русский",
   "learningStatistics": "Статистика",
   "statisticsLoadError": "Не удалось загрузить статистику",
