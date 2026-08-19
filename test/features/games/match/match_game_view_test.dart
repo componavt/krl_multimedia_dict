@@ -5,6 +5,7 @@ import 'package:vepkar_audio/features/games/match/match_round.dart';
 import 'package:vepkar_audio/features/games/match/widgets/match_choice_card.dart';
 import 'package:vepkar_audio/features/games/core/game_entry.dart';
 import 'package:vepkar_audio/features/games/core/game_models.dart';
+import 'package:vepkar_audio/app_theme.dart';
 
 void main() {
   group('MatchChoiceCard', () {
@@ -132,6 +133,73 @@ void main() {
 
       expect(afterTick.wrongLeftId, 'pair1');
       expect(afterTick.wrongRightId, 'pair1');
+    });
+  });
+
+  group('MatchChoiceCardRendering', () {
+    test('right-side selected card renders amber', () {
+      final card = MatchChoiceCard(
+        gameEntry: GameEntry(
+          lemmaId: 'card1',
+          lemma: 'kotka',
+          meaning: 'кошка',
+          partOfSpeech: 'noun',
+          hasAudio: true,
+        ),
+        column: MatchCardColumn.russian,
+        onTap: () {},
+        isSelected: true,
+        isMatched: false,
+        isWrong: false,
+        backgroundColor: AppPalette.translationPanel,
+      );
+
+      expect(card.isSelected, isTrue);
+      expect(card.isWrong, isFalse);
+      expect(card.isMatched, isFalse);
+    });
+
+    test('right-side wrong card renders brick red', () {
+      final card = MatchChoiceCard(
+        gameEntry: GameEntry(
+          lemmaId: 'card1',
+          lemma: 'kotka',
+          meaning: 'кошка',
+          partOfSpeech: 'noun',
+          hasAudio: true,
+        ),
+        column: MatchCardColumn.russian,
+        onTap: () {},
+        isSelected: false,
+        isMatched: false,
+        isWrong: true,
+        backgroundColor: AppPalette.translationPanel,
+      );
+
+      expect(card.isWrong, isTrue);
+      expect(card.isSelected, isFalse);
+    });
+
+    test('right-side matched card renders moss green', () {
+      final card = MatchChoiceCard(
+        gameEntry: GameEntry(
+          lemmaId: 'card1',
+          lemma: 'kotka',
+          meaning: 'кошка',
+          partOfSpeech: 'noun',
+          hasAudio: true,
+        ),
+        column: MatchCardColumn.russian,
+        onTap: () {},
+        isSelected: false,
+        isMatched: true,
+        isWrong: false,
+        backgroundColor: AppPalette.translationPanel,
+      );
+
+      expect(card.isMatched, isTrue);
+      expect(card.isSelected, isFalse);
+      expect(card.isWrong, isFalse);
     });
   });
 }

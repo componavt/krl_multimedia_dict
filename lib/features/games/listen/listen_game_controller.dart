@@ -190,12 +190,6 @@ class ListenGameController extends ChangeNotifier {
     notifyListeners();
 
     await Future<void>.delayed(const Duration(milliseconds: 800));
-
-    if (_roundNumber >= _totalListenRounds) {
-      await completeSession();
-    } else {
-      await _startRound();
-    }
   }
 
   Future<void> _startRound() async {

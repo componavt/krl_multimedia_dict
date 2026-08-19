@@ -241,7 +241,9 @@ class _MatchGameViewState extends State<MatchGameView> {
                   widget.controller.selectRight(card);
                 }
               },
-              isSelected: isLeftSide && state.selectedLeftId == card.lemmaId,
+              isSelected: isLeftSide
+                  ? state.selectedLeftId == card.lemmaId
+                  : state.selectedRightId == card.lemmaId,
               isMatched: false,
               isWrong: isLeftSide
                   ? state.wrongLeftId == card.lemmaId

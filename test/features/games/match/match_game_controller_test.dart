@@ -397,5 +397,73 @@ void main() {
 
       expect(clearedState.isFeedbackInProgress, isFalse);
     });
+
+    test('right-side selection persists without left-side selection', () async {
+      final round = MatchRound(
+        entries: [],
+        leftCards: [],
+        rightCards: [],
+        hintEntryId: null,
+      );
+
+      final state =
+          MatchGameState.feedbackComplete(
+            round: round,
+            matchedPairs: [],
+            matchedEntryIds: <String>{},
+            leftCards: [],
+            rightCards: [],
+            hintEntryId: null,
+            bestTimeSeconds: 0,
+            elapsedTime: Duration.zero,
+          ).copyWith(
+            selectedLeftId: null,
+            selectedRightId: 'right1',
+            isFeedbackInProgress: false,
+          );
+
+      expect(state.selectedRightId, 'right1');
+      expect(state.selectedLeftId, isNull);
+      expect(state.isFeedbackInProgress, isFalse);
+    });
+
+    test('timer ticks preserve right-side selection', () async {
+      final round = MatchRound(
+        entries: [],
+        leftCards: [],
+        rightCards: [],
+        hintEntryId: null,
+      );
+
+      final initialState =
+          MatchGameState.feedbackComplete(
+            round: round,
+            matchedPairs: [],
+            matchedEntryIds: <String>{},
+            leftCards: [],
+            rightCards: [],
+            hintEntryId: null,
+            bestTimeSeconds: 0,
+            elapsedTime: Duration.zero,
+          ).copyWith(
+            selectedLeftId: null,
+            selectedRightId: 'right1',
+            isFeedbackInProgress: false,
+          );
+
+      final afterFirstTick = initialState.copyWith(
+        elapsedTime: const Duration(seconds: 1),
+      );
+
+      expect(afterFirstTick.selectedRightId, 'right1');
+      expect(afterFirstTick.selectedLeftId, isNull);
+
+      final afterSecondTick = afterFirstTick.copyWith(
+        elapsedTime: const Duration(seconds: 2),
+      );
+
+      expect(afterSecondTick.selectedRightId, 'right1');
+      expect(afterSecondTick.elapsedTime, const Duration(seconds: 2));
+    });
   });
 }

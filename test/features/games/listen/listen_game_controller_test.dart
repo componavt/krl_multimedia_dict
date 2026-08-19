@@ -113,6 +113,98 @@ void main() {
       expect(state.hadWrongAttempt, isFalse);
     });
 
+    test('wrong answer does not advance to next round', () {
+      final round = ListenRound(
+        target: GameEntry(
+          lemmaId: 'target1',
+          lemma: 'kotka',
+          meaning: 'eagle',
+          partOfSpeech: 'noun',
+          hasAudio: true,
+        ),
+        choices: [
+          GameEntry(
+            lemmaId: 'target1',
+            lemma: 'kotka',
+            meaning: 'eagle',
+            partOfSpeech: 'noun',
+            hasAudio: true,
+          ),
+          GameEntry(
+            lemmaId: 'distractor1',
+            lemma: 'koira',
+            meaning: 'dog',
+            partOfSpeech: 'noun',
+            hasAudio: true,
+          ),
+          GameEntry(
+            lemmaId: 'distractor2',
+            lemma: 'losi',
+            meaning: 'moose',
+            partOfSpeech: 'noun',
+            hasAudio: true,
+          ),
+          GameEntry(
+            lemmaId: 'distractor3',
+            lemma: 'hiiri',
+            meaning: 'mouse',
+            partOfSpeech: 'noun',
+            hasAudio: true,
+          ),
+        ],
+        roundNumber: 3,
+      );
+
+      final state =
+          ListenGameState.withRound(
+            round: round,
+            score: 0,
+            streak: 0,
+            bestStreak: 0,
+          ).copyWith(
+            hadWrongAttempt: false,
+            selectedEntryId: null,
+            answerIsCorrect: null,
+            isFeedbackInProgress: false,
+            isTargetReplayHighlighted: false,
+            isCorrectChoiceCelebrating: false,
+          );
+
+      final wrongEntry = round.choices[1];
+      final clearedState = state.copyWith(
+        selectedEntryId: wrongEntry.lemmaId,
+        answerIsCorrect: false,
+        isFeedbackInProgress: true,
+        isTargetReplayHighlighted: false,
+        isCorrectChoiceCelebrating: false,
+        hadWrongAttempt: true,
+      );
+
+      final feedbackClearedState = clearedState.copyWith(
+        selectedEntryId: null,
+        answerIsCorrect: null,
+        isFeedbackInProgress: false,
+        isTargetReplayHighlighted: false,
+        isCorrectChoiceCelebrating: false,
+      );
+
+      expect(feedbackClearedState.currentRound, isNotNull);
+      expect(feedbackClearedState.currentRound!.target.lemmaId, 'target1');
+      expect(
+        feedbackClearedState.currentRound!.choices
+            .map((e) => e.lemmaId)
+            .toList(),
+        containsAllInOrder([
+          'target1',
+          'distractor1',
+          'distractor2',
+          'distractor3',
+        ]),
+      );
+      expect(feedbackClearedState.currentRound!.roundNumber, 3);
+      expect(feedbackClearedState.hadWrongAttempt, isTrue);
+    });
+
     test('LearnedSessionSummary.fromJson deserializes correctly', () {
       final json = {
         'session_id': 'test123',
