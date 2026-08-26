@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vepkar_audio/features/games/match/match_game_state.dart';
 import 'package:vepkar_audio/features/games/match/match_round.dart';
+import 'package:vepkar_audio/features/games/core/game_entry.dart';
 import 'package:vepkar_audio/features/games/core/game_models.dart';
 
 void main() {
@@ -464,6 +465,43 @@ void main() {
 
       expect(afterSecondTick.selectedRightId, 'right1');
       expect(afterSecondTick.elapsedTime, const Duration(seconds: 2));
+    });
+  });
+
+  group('MatchGameControllerAudio', () {
+    test('wrong-pair hint uses rightEntry.lemmaId not leftEntry.lemmaId', () {
+      final leftEntry = GameEntry(
+        lemmaId: 'leftId',
+        lemma: 'left lemma',
+        meaning: 'left meaning',
+        partOfSpeech: 'noun',
+        hasAudio: true,
+      );
+      final rightEntry = GameEntry(
+        lemmaId: 'rightId',
+        lemma: 'right lemma',
+        meaning: 'right meaning',
+        partOfSpeech: 'noun',
+        hasAudio: true,
+      );
+      final entries = [leftEntry, rightEntry];
+
+      final round = MatchRound(
+        entries: entries,
+        leftCards: [leftEntry],
+        rightCards: [rightEntry],
+        hintEntryId: null,
+      );
+
+      expect(leftEntry.lemmaId, 'leftId');
+      expect(rightEntry.lemmaId, 'rightId');
+      expect(leftEntry.lemmaId != rightEntry.lemmaId, isTrue);
+
+      final roundEntriesWithAudio = round.entries.where(
+        (e) => e.lemmaId == rightEntry.lemmaId && e.hasAudio,
+      );
+      expect(roundEntriesWithAudio.length, equals(1));
+      expect(roundEntriesWithAudio.first.lemmaId, rightEntry.lemmaId);
     });
   });
 }

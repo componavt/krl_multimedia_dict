@@ -148,8 +148,6 @@ class _MatchGameViewState extends State<MatchGameView> {
       slivers: [
         SliverToBoxAdapter(
           child: MatchStatusPanel(
-            elapsedTime: state.elapsedTime,
-            bestTimeSeconds: state.bestTimeSeconds,
             matchedCount: state.matchedPairs.length,
             totalCount: 5,
           ),

@@ -187,7 +187,7 @@ class _ListenGameViewState extends State<ListenGameView>
 
   Widget _buildListenMode(AppLocalizations l10n, ListenGameState state) {
     final round = state.currentRound!;
-    final progress = round.roundNumber / 10;
+    final progress = (1 + round.roundNumber) / 10;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -213,9 +213,7 @@ class _ListenGameViewState extends State<ListenGameView>
             child: LinearProgressIndicator(
               value: progress,
               backgroundColor: AppPalette.mutedBrown,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                _listenProgressColor(round.roundNumber),
-              ),
+              color: AppPalette.amber,
               minHeight: 12,
             ),
           ),
@@ -395,13 +393,6 @@ class _ListenGameViewState extends State<ListenGameView>
     }
 
     return AppPalette.mutedBrown;
-  }
-
-  Color _listenProgressColor(int roundNumber) {
-    final progress = roundNumber / 10;
-    if (progress >= 1.0) return AppPalette.mossGreen;
-    if (progress >= 0.7) return AppPalette.amber;
-    return AppPalette.parchment;
   }
 
   Animation<double> _sheenAnimationForChoice(

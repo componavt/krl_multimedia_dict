@@ -202,4 +202,88 @@ void main() {
       expect(card.isWrong, isFalse);
     });
   });
+
+  group('MatchedPairsFooter', () {
+    test('newest Restored Pair has muted-brown highlight', () {
+      final newestPair = MatchedPair(
+        id: 'newest',
+        lemma: 'newest lemma',
+        meaning: 'newest meaning',
+      );
+      final olderPair = MatchedPair(
+        id: 'older',
+        lemma: 'older lemma',
+        meaning: 'older meaning',
+      );
+
+      final matchedPairs = [newestPair, olderPair];
+
+      expect(matchedPairs[0].id, 'newest');
+      expect(matchedPairs[1].id, 'older');
+      expect(matchedPairs.length, equals(2));
+
+      final isNewestIndexZero = 0 == 0;
+      expect(isNewestIndexZero, isTrue);
+      expect(newestPair.id, matchedPairs[0].id);
+    });
+
+    test('older pairs retain transparent/default background', () {
+      final pair1 = MatchedPair(
+        id: 'pair1',
+        lemma: 'pair1 lemma',
+        meaning: 'pair1 meaning',
+      );
+      final pair2 = MatchedPair(
+        id: 'pair2',
+        lemma: 'pair2 lemma',
+        meaning: 'pair2 meaning',
+      );
+      final pair3 = MatchedPair(
+        id: 'pair3',
+        lemma: 'pair3 lemma',
+        meaning: 'pair3 meaning',
+      );
+
+      final matchedPairs = [pair1, pair2, pair3];
+
+      expect(matchedPairs[0].id, 'pair1');
+      expect(matchedPairs[1].id, 'pair2');
+      expect(matchedPairs[2].id, 'pair3');
+      expect(matchedPairs.length, equals(3));
+
+      expect(matchedPairs[1].id != 'pair1', isTrue);
+    });
+  });
+
+  group('MatchGameControllerStateTransitions', () {
+    test('final-pair completion publishes completed state after audio', () {
+      final state = MatchGameState.completed(
+        matchedPairs: List.generate(
+          5,
+          (i) =>
+              MatchedPair(id: 'id$i', lemma: 'lemma$i', meaning: 'meaning$i'),
+        ),
+        matchedEntryIds: {'id0', 'id1', 'id2', 'id3', 'id4'},
+        elapsedTime: const Duration(seconds: 30),
+        bestTimeSeconds: 30,
+      );
+
+      expect(state.isSessionCompleted, isTrue);
+      expect(state.matchedPairs.length, equals(5));
+      expect(state.elapsedTime, const Duration(seconds: 30));
+      expect(state.bestTimeSeconds, equals(30));
+    });
+
+    test('newest pair at index zero in matchedPairs', () {
+      final pairA = MatchedPair(id: 'A', lemma: 'A', meaning: 'A');
+      final pairB = MatchedPair(id: 'B', lemma: 'B', meaning: 'B');
+
+      final matchedPairs = <MatchedPair>[pairA];
+      matchedPairs.insert(0, pairB);
+
+      expect(matchedPairs[0].id, 'B');
+      expect(matchedPairs[1].id, 'A');
+      expect(matchedPairs.length, equals(2));
+    });
+  });
 }

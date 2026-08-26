@@ -219,13 +219,13 @@ class MatchGameController extends ChangeNotifier {
 
       await learningRepository.registerMatchSuccess(lemmaId: leftEntry.lemmaId);
 
-      if (_currentRound!.entries.any(
-        (e) => e.lemmaId == leftEntry.lemmaId && e.hasAudio,
-      )) {
-        await audioPlayer.play(leftEntry.lemmaId);
-      }
-
       if (_matchedPairs.length == _totalPairs) {
+        if (_currentRound!.entries.any(
+          (e) => e.lemmaId == leftEntry.lemmaId && e.hasAudio,
+        )) {
+          await audioPlayer.playAndWait(leftEntry.lemmaId);
+        }
+
         _timer?.cancel();
 
         final elapsedTime = DateTime.now().difference(_startTime!);
@@ -245,6 +245,12 @@ class MatchGameController extends ChangeNotifier {
         notifyListeners();
         return;
       } else {
+        if (_currentRound!.entries.any(
+          (e) => e.lemmaId == leftEntry.lemmaId && e.hasAudio,
+        )) {
+          await audioPlayer.play(leftEntry.lemmaId);
+        }
+
         _state = MatchGameState.withMatchResult(
           round: _currentRound!,
           matchedPairs: _matchedPairs,
@@ -274,6 +280,12 @@ class MatchGameController extends ChangeNotifier {
         elapsedTime: _elapsedTime,
       );
       notifyListeners();
+
+      if (_currentRound!.entries.any(
+        (e) => e.lemmaId == rightEntry.lemmaId && e.hasAudio,
+      )) {
+        await audioPlayer.playAndWait(rightEntry.lemmaId);
+      }
 
       await Future<void>.delayed(const Duration(milliseconds: 500));
       _resetSelection();

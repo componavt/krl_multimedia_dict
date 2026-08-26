@@ -34,6 +34,7 @@ class MatchedPairsFooter extends StatelessWidget {
               itemCount: matchedPairs.length,
               itemBuilder: (context, index) {
                 final pair = matchedPairs[index];
+                final isNewest = index == 0;
 
                 return AnimatedSlide(
                   duration: const Duration(milliseconds: 300),
@@ -41,32 +42,43 @@ class MatchedPairsFooter extends StatelessWidget {
                   offset: Offset.zero,
                   child: Padding(
                     padding: const EdgeInsets.only(bottom: 6),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            pair.lemma,
-                            style: const TextStyle(
-                              color: AppPalette.parchment,
-                              fontFamily: 'Open Sans',
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: isNewest
+                            ? AppPalette.mutedBrown.withValues(alpha: 0.55)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 4, left: 4),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                pair.lemma,
+                                style: const TextStyle(
+                                  color: AppPalette.parchment,
+                                  fontFamily: 'Open Sans',
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                        const Icon(
-                          Icons.arrow_forward_ios_rounded,
-                          size: 12,
-                          color: AppPalette.amber,
-                        ),
-                        Expanded(
-                          child: Text(
-                            pair.meaning,
-                            style: const TextStyle(
-                              color: AppPalette.parchment,
-                              fontFamily: 'Open Sans',
+                            const Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              size: 12,
+                              color: AppPalette.amber,
                             ),
-                          ),
+                            Expanded(
+                              child: Text(
+                                pair.meaning,
+                                style: const TextStyle(
+                                  color: AppPalette.parchment,
+                                  fontFamily: 'Open Sans',
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 );
